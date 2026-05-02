@@ -150,9 +150,7 @@ radar/
 │   └── shared/                 logger, errors, dates utils
 │
 ├── infra/
-│   ├── docker/                 Dockerfile agent, compose Postgres local
-│   ├── caddy/                  reverse proxy SSL self-hosted
-│   └── scripts/                deploy, backup
+│   └── docker/                 Dockerfile agent, compose Postgres local
 │
 ├── docs/
 │   └── PRD-RADAR-v2.0.md       Product Requirements Document complet
@@ -172,7 +170,7 @@ radar/
 | Database | PostgreSQL 17 + Prisma 6 |
 | Contracts | Zod 3 |
 | UI | Tokens Intel Dark + composants typés |
-| Infra | Docker + Caddy (SSL automatique Let's Encrypt) |
+| Infra | Docker (Postgres local + image agent multi-stage) |
 | CI | GitHub Actions (typecheck, lint, build, test) |
 
 ---
