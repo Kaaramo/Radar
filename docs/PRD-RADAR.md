@@ -1,6 +1,6 @@
 # PRD COMPLET · RADAR
 
-> **Version** : 2.0 (refonte complète)
+> **Version** : 2.1 (Bloc 2 livré)
 > **Statut** : En cours de rédaction, blocs en cours de validation
 > **Date** : Mai 2026
 > **Projet** : Module M244 (Veille Technologique), ENSA Tétouan, Cycle Ingénieur BDIA
@@ -16,6 +16,7 @@
 |---------|------|------------|--------|
 | v1.0 | Mars 2026 | Création initiale | Cahier des charges 9 pages : contexte, vision, ancrage M244, personas, fonctionnalités MVP, stack |
 | v2.0 | Mai 2026 | Refonte complète | Élargissement du périmètre vers PRD ingénieur complet : architecture, données, API, UI/UX, règles métier, coûts, phasage. Cycle de veille aligné sur le cours (5 étapes vs 6). Persona consultant ajouté. |
+| v2.1 | Mai 2026 | Bloc 2 livré | Sections 6 à 9 ajoutées : architecture du système OpenClaw (orchestrateur, sous-agents, queue, cron, observabilité), spécifications fonctionnelles MVP F1 à F7, modèle de données Prisma complet (20 entités) et catalogue d'endpoints API REST. Réalignement explicite du modèle de données sur le produit "monitoring continu" (vs ancien scaffold "rapport one-shot"). |
 
 ---
 
@@ -26,10 +27,10 @@
 3. [Ancrage académique M244](#3-ancrage-académique-m244)
 4. [Personas utilisateurs](#4-personas-utilisateurs)
 5. [Parcours utilisateur](#5-parcours-utilisateur)
-6. *Architecture du système (Engine OpenClaw) · à venir bloc 2*
-7. *Spécifications fonctionnelles MVP (F1-F7) · à venir bloc 2*
-8. *Architecture des données (Prisma + ERD) · à venir bloc 2*
-9. *Endpoints API · à venir bloc 2*
+6. [Architecture du système (Engine OpenClaw)](#6-architecture-du-système-engine-openclaw)
+7. [Spécifications fonctionnelles MVP (F1-F7)](#7-spécifications-fonctionnelles-mvp-f1-f7)
+8. [Architecture des données (Prisma + ERD)](#8-architecture-des-données-prisma--erd)
+9. [Endpoints API](#9-endpoints-api)
 10. *Exigences UI/UX (Intel Dark) · à venir bloc 3*
 11. *Authentification & autorisations · à venir bloc 3*
 12. *Règles métier · à venir bloc 3*
@@ -421,6 +422,726 @@ C'est ce moment précis qui transforme un utilisateur curieux en utilisateur eng
 
 ---
 
-> **Fin du Bloc 1 · Foundations.** Sections 1 à 5 livrées. Le bloc 2 couvrira l'architecture du système, les spécifications fonctionnelles MVP détaillées, l'architecture des données et les endpoints API. Section critique selon le skill, validation requise après livraison.
+> **Fin du Bloc 1 · Foundations.** Sections 1 à 5 livrées.
+
+---
+
+## 6. ARCHITECTURE DU SYSTÈME (ENGINE OPENCLAW)
+
+### 6.1 Vue d'ensemble
+
+Radar est composé de quatre tiers logiques qui collaborent pour livrer le cycle de veille. Chaque tier a une responsabilité unique, expose une interface contractuelle (HTTP signé ou requête SQL paramétrée), et peut être redémarré indépendamment.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          CLIENT (NAVIGATEUR)                            │
+│   Dashboard · Onboarding · Détail concurrent · Settings · Digest        │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │ HTTPS
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     APPS/WEB · NEXT.JS 16 (App Router)                  │
+│   ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────────┐   │
+│   │  Server Comp.   │  │   API Routes     │  │  Server Actions      │   │
+│   │  (rendering)    │  │   (CRUD + auth)  │  │  (mutations)         │   │
+│   └─────────────────┘  └─────────┬────────┘  └──────────┬───────────┘   │
+│            ▲                     │                      │               │
+│            │ webhook signé HMAC  │                      │               │
+└────────────┼─────────────────────┼──────────────────────┼───────────────┘
+             │                     │                      │
+             │                     ▼                      ▼
+             │          ┌──────────────────────────────────────────────┐
+             │          │           POSTGRESQL 17 + PRISMA             │
+             │          │   User, CompanyProfile, Competitor, Cycle    │
+             │          │   Source, Movement, SWOT/PESTEL Snapshot,    │
+             │          │   WeakSignal, EmailDigest, AuditLog          │
+             │          └──────────┬─────────────────────▲─────────────┘
+             │                     │                     │
+             │                     ▼                     │
+┌────────────┴─────────────────────────────────────────────────────────────┐
+│             APPS/AGENT · NODE 24 + FASTIFY 5 (Engine OpenClaw)           │
+│                                                                          │
+│   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────┐   │
+│   │   Scheduler      │  │   Orchestrateur  │  │   Queue (pg-boss)    │   │
+│   │   (cron 06:00)   │──▶  OpenClaw        │◀─┤   jobs persistants   │   │
+│   │   (cron PESTEL)  │  │                  │  │   retry + dead-letter│   │
+│   └──────────────────┘  └────────┬─────────┘  └──────────────────────┘   │
+│                                  │                                       │
+│   ┌──────────────────────────────┴─────────────────────────────────┐     │
+│   │                    SOUS-AGENTS (6, isolés)                     │     │
+│   │  Deep Research · Collecteur · Évaluateur CRAAP                 │     │
+│   │  Analyste SWOT · Analyste PESTEL · Détecteur signaux faibles   │     │
+│   │  Rédacteur                                                     │     │
+│   └──────────┬─────────────────────────────────────────────────────┘     │
+│              │                                                           │
+│              ▼                                                           │
+│   ┌──────────────────────────────────────────────────────────────┐       │
+│   │              ADAPTATEURS LLM ET WEB                          │       │
+│   │  Anthropic SDK (Claude Opus 4.7) · Tavily (recherche web)    │       │
+│   │  Playwright (scraping ciblé) · Resend (email transactionnel) │       │
+│   └──────────────────────────────────────────────────────────────┘       │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 Composants
+
+| Composant | Tech | Responsabilité |
+|---|---|---|
+| `apps/web` | Next.js 16, React 19, Tailwind 4 | Rendu UI, API publique vers le client, server actions, auth, webhooks entrants signés HMAC, déclenchement manuel de cycles |
+| `apps/agent` | Node 24, Fastify 5, Anthropic SDK | Hébergement de l'orchestrateur OpenClaw, des sous-agents, du scheduler, de la queue. Service stateless, scalable horizontalement |
+| `Scheduler` | `node-cron` embarqué dans `apps/agent` | Déclenche les cycles quotidiens à 06:00 et la MAJ PESTEL le dimanche 23:00. Émet des jobs `cycle.daily` et `pestel.weekly` dans la queue |
+| `Queue` | `pg-boss` (Postgres-backed, pas de Redis V1) | Persistance des jobs, retry exponentiel, dead-letter queue, job singleton (idempotence par `cycleId`) |
+| `Orchestrateur OpenClaw` | TypeScript pur dans `apps/agent/src/orchestrator` | Sait composer les sous-agents en pipeline ou en parallèle, gère le contexte LLM, agrège les résultats, enregistre les `AgentRun` en BD |
+| `Sous-agents` | 7 modules dans `apps/agent/src/agents/*` | Chacun encapsule une compétence : invocation LLM, parsing JSON, validation Zod, persistence du résultat |
+| `Adaptateurs externes` | `apps/agent/src/adapters/*` | Wrappers typés autour de Anthropic, Tavily/Serper, Playwright, Resend. Isolent les SDK tiers du métier |
+| `PostgreSQL 17` | Self-hosted Docker en V1, hébergé Neon/Supabase en V2 | Source unique de vérité métier + queue + sessions auth |
+
+### 6.3 Les 7 sous-agents OpenClaw
+
+La V2.0 du PRD ne listait que 5 sous-agents. La V2.1 en ajoute 2 que la lecture du parcours utilisateur (section 5.3) rend obligatoires : **Deep Research d'onboarding** et **Détecteur de signaux faibles** (qui était mentionné en section 3.2 mais pas formalisé comme agent à part).
+
+| # | Agent | Quand | Input | Output | Modèle |
+|---|---|---|---|---|---|
+| 1 | **Deep Research** | À l'onboarding (1 fois par CompanyProfile, 1 fois par Competitor ajouté) | Nom + URL d'une entité | Profil enrichi : secteur, taille, ICP, mots-clés, concurrents potentiels | `claude-opus-4-7` (max thinking) |
+| 2 | **Collecteur** | Cycle quotidien, étape 1 | `Competitor` + `SurveillanceAxis[]` actifs | Liste de `Source` brutes avec URL, titre, contenu, date publication | `claude-haiku-4-5` (rapide, peu coûteux) + Tavily/Playwright |
+| 3 | **Évaluateur CRAAP** | Cycle quotidien, étape 2 | `Source[]` brutes | `Source[]` avec `SourceCRAAP` (5 scores + global + justification + flag rejetée) | `claude-haiku-4-5` (batch parallèle) |
+| 4 | **Analyste SWOT** | Cycle quotidien, étape 3a (parallèle) | `Source[]` validées par concurrent | `SWOTSnapshot` (4 listes) | `claude-opus-4-7` |
+| 5 | **Analyste PESTEL** | Cycle hebdo (lundi 06:00), étape 3b | `Source[]` validées + secteur | `PESTELSnapshot` (6 listes) | `claude-opus-4-7` |
+| 6 | **Détecteur signaux faibles** | Cycle quotidien, étape 4 (déclenché 1 fois sur 7 jours OU à chaque cycle si fenêtre 30j non encore stable) | `Source[]` des 30 derniers jours, tous concurrents confondus | `WeakSignal[]` avec intensité, horizon, sources support | `claude-opus-4-7` (long context) |
+| 7 | **Rédacteur** | Cycle quotidien, étape 5 | Tous les outputs précédents du cycle | `Movement[]` (alertes utilisateur structurées) + texte digest email | `claude-opus-4-7` |
+
+### 6.4 Pipeline du cycle quotidien
+
+```
+06:00 ─ Scheduler émet job cycle.daily{userId, cycleDate}
+        │
+06:00 ─ Queue assigne le job à un worker libre
+        │
+06:00 ─ Orchestrateur charge le contexte (CompanyProfile, Competitor[], Axes[])
+        │
+06:00 ─ ÉTAPE 1 : Collecte (sequential par concurrent, parallèle entre concurrents)
+        │   Pour chaque Competitor :
+        │     ├── Tavily search (axes activés ⇒ requêtes générées par Collecteur)
+        │     └── Playwright scrape ciblé (page presse, carrières, blog)
+        │   Persistence : Source[] en BD avec rawContent
+        │
+06:15 ─ ÉTAPE 2 : Évaluation CRAAP (parallèle, batches de 10 sources)
+        │   Score chaque Source, marque rejetée si global < 5/10
+        │   Persistence : SourceCRAAP[]
+        │
+06:25 ─ ÉTAPE 3 : Analyses (parallèle)
+        │   ├── ÉTAPE 3a : SWOT par concurrent (1 appel par Competitor)
+        │   ├── ÉTAPE 3b : PESTEL sectoriel (lundi seulement, sinon skip)
+        │   └── ÉTAPE 3c : Signaux faibles (window 30j, tous concurrents)
+        │   Persistence : SWOTSnapshot[], PESTELSnapshot?, WeakSignal[]
+        │
+06:45 ─ ÉTAPE 4 : Rédaction
+        │   Rédacteur transforme les snapshots en Movement[] dédupliqués
+        │   contre les 7 derniers jours (similarité embedding ≥ 0.85 ⇒ rejeté)
+        │   Persistence : Movement[]
+        │
+06:55 ─ ÉTAPE 5 : Diffusion
+        │   ├── Webhook → apps/web : "cycle.completed"
+        │   ├── Apps/web met à jour le dashboard temps réel
+        │   └── Si setting.digestFrequency=daily : enqueue job email.digest
+        │
+07:00 ─ Queue worker email.digest
+        │   ├── Rédacteur regénère le résumé digest (court, scannable)
+        │   ├── Resend envoie l'email
+        │   └── EmailDigest persisté avec messageId pour bounce tracking
+```
+
+### 6.5 Communications inter-composants
+
+**Web → Agent** : HTTP REST signé HMAC SHA-256. Le client web POST sur `https://agent.radar.example/run` avec header `X-Radar-Signature: t=<timestamp>,v1=<hmac>`. L'agent vérifie, accepte (202) et traite en async via la queue.
+
+**Agent → Web** : Webhook signé symétriquement. L'agent POST sur `https://radar.example/api/webhooks/agent` avec le même schéma de signature. Le web vérifie, accuse réception (204) et met à jour ses caches.
+
+**Agent ↔ DB** : Direct via Prisma. Les deux services partagent le même schéma. Pas de service tiers `@radar/database` en lecture/écriture, juste un client typé.
+
+**Agent ↔ Anthropic** : SDK officiel `@anthropic-ai/sdk`. Streaming désactivé en V1 (résultats parsés en JSON strict). Cache prompt activé sur le `system` prompt commun (économie ~40% sur les sous-agents qui partagent un préambule).
+
+**Agent ↔ Tavily/Playwright** : adapter dédié. Tavily en priorité (API rapide, structuré), Playwright en fallback ciblé sur 3 pages canoniques (`/about`, `/careers`, `/news`).
+
+### 6.6 Gestion du contexte LLM et budget tokens
+
+| Agent | Contexte input typique | Output typique | Budget max par appel |
+|---|---|---|---|
+| Deep Research | 4 KB (URL + nom) | 8 KB (profil enrichi) | 32 KB |
+| Collecteur | 2 KB (axes activés) | 8 KB (10-20 requêtes) | 16 KB |
+| Évaluateur CRAAP | 8 KB (1 source) | 1 KB (scores) | 12 KB |
+| Analyste SWOT | 40 KB (sources d'un concurrent) | 4 KB (matrice) | 64 KB |
+| Analyste PESTEL | 80 KB (sources d'un secteur) | 6 KB (matrice) | 100 KB |
+| Détecteur signaux faibles | 200 KB (sources 30j) | 8 KB (signaux) | 256 KB |
+| Rédacteur | 60 KB (snapshots) | 16 KB (movements + digest) | 96 KB |
+
+L'orchestrateur impose un **garde-fou strict** : si un input dépasse 80% du budget max, il déclenche une stratégie de réduction (résumé en cascade par Haiku, ou chunking + map-reduce). Les violations sont loggées et alertent.
+
+### 6.7 Fiabilité : retry, timeout, idempotence
+
+- **Timeout par sous-agent** : 5 minutes pour les agents LLM standards, 15 minutes pour le Détecteur de signaux faibles (long context).
+- **Timeout par cycle complet** : 60 minutes pour 5 concurrents. Au-delà, le job est marqué `failed`, un `Movement` "Cycle incomplet" est créé pour transparence utilisateur.
+- **Retry** : exponentiel `pg-boss` avec base 30s, max 3 tentatives. Le 4e échec déplace en dead-letter queue avec alerte Slack.
+- **Idempotence** : chaque job a une clé `cycleId = userId:date:UTC`. Deux émissions du même cycleId sont collapsées (singleton job).
+- **Atomicité** : chaque sous-agent qui persiste fait sa propre transaction. Pas de transaction globale au cycle, sinon un échec d'agent annulerait tout. À la place, un `VeilleCycle.status` agrège l'état (`running`, `partial_success`, `success`, `failed`).
+- **Reprise** : si un cycle échoue à l'étape N, un job `cycle.resume{cycleId, fromStep: N}` peut être enqueué manuellement par l'admin (non exposé utilisateur en V1).
+
+### 6.8 Observabilité
+
+| Aspect | Outil V1 | Outil V2 cible |
+|---|---|---|
+| Logs structurés | `@radar/shared` logger (JSON sur stdout, niveau via `LOG_LEVEL`) | Centralisation Loki + Grafana |
+| Métriques applicatives | Compteurs simples loggés (cycles/jour, durées, coûts tokens) | Prometheus + Grafana dashboards |
+| Tracing distribué | Aucun | OpenTelemetry, exporté vers Tempo |
+| Erreurs | Logs niveau `error` + capture exception via try/catch | Sentry |
+| Alerting | Email manuel sur dead-letter queue | PagerDuty ou Slack incident |
+| Coûts LLM | Usage Anthropic loggé par `AgentRun` (`tokensIn`, `tokensOut`, `costUsd`) | Dashboard PostHog ou interne |
+
+Chaque sous-agent émet un `AgentRun` en BD avec `agentName`, `cycleId`, `startedAt`, `endedAt`, `status`, `tokensIn`, `tokensOut`, `costUsd`, `error?`. Cela permet une comptabilité fine des coûts et des performances par agent dès le jour 1, sans dépendance à un APM externe.
+
+### 6.9 Topologie de déploiement
+
+**Environnement développement local** : 3 process sur la machine du dev (Next.js dev, agent dev, Postgres Docker). Pas de Caddy, pas de queue séparée, `pg-boss` natif dans Postgres.
+
+**Environnement production V1 (self-hosted)** : 1 VPS (Hetzner CPX21 ou équivalent, 3 vCPU 4 GB RAM, ~15 €/mois) avec :
+- Caddy en reverse proxy SSL (Let's Encrypt auto)  *(à réintroduire si besoin de SSL public, sinon laissez Cloudflare devant le VPS)*
+- 1 container `radar-web` (Next.js prod build)
+- 1 container `radar-agent` (Node prod build)
+- 1 container `radar-postgres` (Postgres 17 + volume persistant + backup quotidien `pg_dump` vers S3-compatible)
+- Les 3 containers sur le même réseau Docker, communications internes via DNS Docker
+
+**Environnement production V2 (cible managed)** : `apps/web` sur Vercel (Fluid Compute), `apps/agent` sur Fly.io ou Railway (toujours Fastify Node), Postgres sur Neon (branching, scale-to-zero), queue sur Upstash Redis ou conservation `pg-boss`.
+
+### 6.10 Pourquoi ce choix d'architecture (et pas autre chose)
+
+| Décision | Alternative écartée | Raison |
+|---|---|---|
+| Agent dans un service séparé (`apps/agent`) | Tout dans Next.js avec Server Actions | Cycles de 30 minutes incompatibles avec le timeout serverless typique. Service Node dédié, scalable indépendamment, isolé des plantages web. |
+| Queue `pg-boss` (Postgres) | BullMQ + Redis | V1 mono-VPS : ajouter Redis = 1 service de plus à opérer pour zéro gain. `pg-boss` fait 90% du job sans nouvelle dépendance. Migration BullMQ possible en V2 si volumétrie l'exige. |
+| 7 sous-agents discrets | 1 méga-prompt avec function calling | Traçabilité : chaque sous-agent est testable et évaluable isolément (critique pour la soutenance M244). Coût : un méga-prompt aurait un contexte explosif et un debugging cauchemardesque. |
+| Webhooks signés HMAC | gRPC ou tRPC entre web et agent | HTTP + JSON est universel, debuggable avec curl, pas de génération de stubs. HMAC suffit pour V1 (pas multi-tenant). tRPC envisageable plus tard si besoin de typage cross-service end-to-end. |
+| Postgres comme stockage des jobs ET du métier | Stockage métier + queue Redis séparés | Une seule transaction possible entre métier et job (ex : créer un Cycle et enqueuer son job atomiquement). Simplification ops majeure en V1. |
+| Anthropic Claude (pas OpenAI ni Mistral) | GPT-4.1 / Mistral Large | Opus 4.7 supérieur sur tâches d'analyse longue (contexte 200K), prompt caching mature, budgétairement compétitif sur cette charge. Cours M244 et grilles d'analyse francophones bien gérés. |
+
+---
+
+## 7. SPÉCIFICATIONS FONCTIONNELLES MVP (F1-F7)
+
+### 7.1 Vue d'ensemble
+
+Le MVP V1 livre 7 fonctionnalités. Elles couvrent l'intégralité du parcours décrit en section 5 et constituent la **surface minimale défendable** devant le jury M244.
+
+| ID | Nom | Priorité | Sprint cible | Owner |
+|---|---|---|---|---|
+| F1 | Authentification et gestion compte | Must | 1 | Karamo |
+| F2 | Onboarding Deep Research | Must | 2 | Karamo + Bachirou |
+| F3 | Cycle de veille quotidien automatique | Must | 3-4 | Bachirou |
+| F4 | Dashboard et feed d'alertes | Must | 5 | Karamo |
+| F5 | Digest email quotidien et hebdomadaire | Must | 5 | Karamo |
+| F6 | Export PDF d'un rapport | Should | 6 | Karamo |
+| F7 | Gestion entreprise / concurrents / axes (CRUD) | Must | 1-2 | Karamo |
+
+### 7.2 F1 : Authentification et gestion compte
+
+**Description.** Permettre à un utilisateur de créer un compte (email + mot de passe ou Google OAuth), de se connecter, de réinitialiser son mot de passe, de vérifier son email et de supprimer son compte (RGPD).
+
+**User stories.**
+- En tant que visiteur, je peux créer un compte en moins de 30 secondes pour accéder à Radar.
+- En tant qu'utilisateur, je peux me connecter via Google en un clic pour éviter le mot de passe.
+- En tant qu'utilisateur, je peux réinitialiser mon mot de passe oublié via un lien email.
+- En tant qu'utilisateur, je peux supprimer mon compte et toutes mes données associées en moins de 7 jours (conformité RGPD).
+
+**Critères d'acceptation.**
+- Inscription email + password : validation côté client (Zod) + serveur (Zod). Mot de passe ≥ 8 caractères avec 1 majuscule et 1 chiffre. Hash Argon2id (memory 64 MB, iterations 3, parallelism 1).
+- Google OAuth : provider configuré via `NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID` et secret côté serveur.
+- Email de vérification envoyé via Resend dans la minute suivant l'inscription. Lien valable 24h.
+- Vérification email **non bloquante** : l'utilisateur accède à l'onboarding sans avoir cliqué le lien. Une banderole persistante l'invite à le faire tant que `User.emailVerifiedAt` est null.
+- Reset password : token random 256 bits, valable 1h, à usage unique, stocké hashé en BD.
+- Suppression compte : soft-delete immédiat (`User.deletedAt`), purge dure des données dans un job `user.purge` exécuté à T+7 jours (fenêtre de retour en arrière).
+
+**Dépendances.** Schéma `User`, `Account`, `Session`, `VerificationToken` (section 8). Lib auth : `Better-Auth` (choisi pour son support natif Next.js 16 App Router, OAuth simple, sessions DB-backed sans cookie d'opacité).
+
+### 7.3 F2 : Onboarding Deep Research
+
+**Description.** Capturer le contexte business de l'utilisateur en 3 étapes (entreprise, concurrents, axes) en moins de 10 minutes, et déclencher en arrière-plan un Deep Research d'enrichissement qui livre un profil exploitable au premier cycle.
+
+**User stories.**
+- En tant que nouvel utilisateur, je veux saisir mon entreprise et mes 3 à 5 concurrents en quelques minutes pour démarrer la veille.
+- En tant que nouvel utilisateur, je veux que Radar enrichisse automatiquement mon profil et celui des concurrents (secteur, ICP, mots-clés) sans que je le saisisse manuellement.
+- En tant que nouvel utilisateur, je veux pouvoir choisir mes axes de surveillance parmi des options recommandées.
+
+**Critères d'acceptation.**
+- Étape 1 : formulaire `name + url` validé (Zod URL), persisté en `CompanyProfile`. Au submit, job `deep-research.company` enqueué. UI passe à l'étape 2 sans attendre.
+- Étape 2 : ajout itératif de concurrents (cards). Min 1, max 10 en V1 (limite explicite). Chaque ajout enqueue un job `deep-research.competitor`. URL validée. Suppression d'un concurrent en V1 = soft-delete (`Competitor.deletedAt`).
+- Étape 3 : grille de 5 cards toggleables (les 5 axes par défaut). Min 1 axe actif requis. Sélection persistée en `CompetitorAxis` pour chaque concurrent (par défaut tous les axes activés sont appliqués à tous les concurrents).
+- Le Deep Research enrichit `CompanyProfile` (sector, sizeBand, ICP, keywords, suggestedCompetitors[]) et chaque `Competitor` (sector, sizeBand, foundedYear, headquartersCity, primaryProducts[]). Les champs sont nullables : si l'agent ne trouve rien, le champ reste vide sans bloquer.
+- Au terme du Deep Research, un toast UX informe l'utilisateur : "Profil enrichi automatiquement, premier rapport demain à 6h".
+- Si le Deep Research échoue (timeout 5min, erreur LLM), l'onboarding **n'est pas bloqué** : le profil reste minimal, le cycle quotidien fonctionne avec ce qu'il a, un retry automatique est planifié à H+6.
+
+**Dépendances.** F1 (auth), F7 (CRUD entités), agent Deep Research (section 6.3 #1).
+
+### 7.4 F3 : Cycle de veille quotidien automatique
+
+**Description.** Exécuter chaque jour à 06:00 le pipeline complet (Collecte → Évaluation → Analyses → Rédaction → Diffusion) pour chaque utilisateur actif, et persister les résultats dans le modèle de données pour consultation web et email.
+
+**User stories.**
+- En tant qu'utilisateur, je veux qu'un rapport frais soit prêt chaque matin à 7h sans aucune action de ma part.
+- En tant qu'utilisateur, je veux que le rapport couvre tous mes concurrents et tous mes axes activés.
+- En tant qu'utilisateur, je veux pouvoir voir l'état d'avancement d'un cycle en cours si je consulte le dashboard avant 7h.
+- En tant qu'utilisateur (ou admin), je veux pouvoir relancer un cycle manuellement pour test ou récupération.
+
+**Critères d'acceptation.**
+- Cron déclenché à 06:00 UTC+1 (Maroc). Configurable via env `CYCLE_CRON_EXPR` pour tests.
+- Chaque utilisateur actif (User non soft-deleted, ayant ≥ 1 Competitor non supprimé) génère 1 `VeilleCycle`.
+- Un cycle traite tous les concurrents en parallèle, et toutes les sources d'un concurrent en parallèle (concurrence configurable via env, défaut 5).
+- Statut du cycle suivi en temps réel : `pending → collecting → evaluating → analyzing → writing → completed | partial_success | failed`.
+- Au terme, le webhook `cycle.completed` notifie le web qui invalide les caches (revalidation Next.js par tag `cycle:userId`).
+- Cycle hebdomadaire PESTEL : déclenché le dimanche à 23:00 (avant le cycle quotidien du lundi) pour que le PESTEL soit prêt à 06:00 lundi.
+- Bouton "Lancer un cycle maintenant" disponible dans Settings (rate-limit : 1 par 4h pour éviter abus / coût).
+- Logs structurés émis à chaque étape : `cycle.started`, `cycle.step.collect.done{durationMs, sourceCount}`, etc.
+
+**Dépendances.** F2 (CompanyProfile et Competitor existants), agents 2 à 7 (section 6.3), schéma `VeilleCycle`, `Source`, `SourceCRAAP`, `SWOTSnapshot`, `PESTELSnapshot`, `WeakSignal`, `Movement`.
+
+### 7.5 F4 : Dashboard et feed d'alertes
+
+**Description.** Vue principale post-login : feed chronologique des `Movement` détectés, filtrables par concurrent, axe, sévérité, date. Cards riches avec extrait, source(s), score CRAAP, statut (nouveau / vu / sauvegardé / ignoré).
+
+**User stories.**
+- En tant qu'utilisateur, je veux voir en 1 coup d'œil les nouveautés du jour quand j'ouvre Radar.
+- En tant qu'utilisateur, je veux filtrer le feed par concurrent ou par axe pour me concentrer sur ce qui m'intéresse.
+- En tant qu'utilisateur, je veux marquer une alerte comme "sauvegardée" ou "ignorée" pour curer mon suivi.
+- En tant qu'utilisateur, je veux accéder au détail d'un concurrent (sa SWOT, son historique 90 jours).
+- En tant qu'utilisateur, je veux voir les signaux faibles regroupés dans un onglet dédié.
+
+**Critères d'acceptation.**
+- Page `/dashboard` : 3 zones (header avec stats du jour, feed central avec cards `Movement`, sidebar avec filtres).
+- Card `Movement` : titre, extrait (≤ 200 chars), concurrent, axe, date, badge sévérité, score CRAAP moyen des sources, lien vers détail.
+- Filtres persistés en URL (querystring `?competitor=X&axis=Y&since=Z`) pour partage et bookmarking.
+- Marquage statut : optimistic UI, mutation server action, persistance `MovementUserState{movementId, userId, status}`.
+- Pagination cursor-based (50 par page), tri `createdAt desc` par défaut.
+- Onglet "Signaux faibles" : liste des `WeakSignal` actifs (détectés dans les 30 derniers jours, non expirés), groupés par intensité.
+- Page `/competitors/[id]` : profil concurrent + dernière SWOT + timeline 90 jours des Movement.
+- Page `/movements/[id]` : détail complet avec liste des sources, scores CRAAP individuels, contenu extrait.
+- Polling 60s sur le dashboard pour rafraîchir le feed pendant un cycle en cours (badge "Cycle en cours" affiché).
+
+**Dépendances.** F3 (production des `Movement`), composants `@radar/ui`.
+
+### 7.6 F5 : Digest email quotidien et hebdomadaire
+
+**Description.** Envoi automatique d'un email récapitulatif des `Movement` du dernier cycle, formaté React Email, livré via Resend, avec lien direct vers chaque alerte dans le dashboard.
+
+**User stories.**
+- En tant qu'utilisateur, je veux recevoir un email chaque matin à 7h avec les nouveautés du jour.
+- En tant qu'utilisateur, je veux pouvoir choisir entre digest quotidien et digest hebdomadaire.
+- En tant qu'utilisateur, je veux pouvoir me désabonner facilement (1 clic).
+
+**Critères d'acceptation.**
+- Templates React Email dans `apps/web/emails/` (au moins : `daily-digest.tsx`, `weekly-digest.tsx`, `verify-email.tsx`, `reset-password.tsx`).
+- Job `email.digest{userId, period}` enqueué à 07:00 (quotidien) et lundi 07:00 (hebdomadaire).
+- Contenu : header (date, count), section par concurrent avec top 3 Movement, footer (lien dashboard, désabonnement).
+- Lien désabonnement signé (token JWT court 7 jours). Désabonnement met `Setting.digestFrequency = 'never'`.
+- Tracking des bounces et complaints via webhooks Resend (`apps/web/api/webhooks/resend`). Si 3 bounces consécutifs : `digestFrequency = 'paused'`, email d'alerte au support.
+- Persistance `EmailDigest{userId, period, sentAt, messageId, status, movementCount}`.
+
+**Dépendances.** F1 (User), F3 (Movement), Resend account configuré.
+
+### 7.7 F6 : Export PDF d'un rapport
+
+**Description.** Permettre à l'utilisateur d'exporter en PDF un rapport pour un concurrent ou pour une période (ex : tous les Movement du dernier mois), formaté selon la structure académique du Chapitre 2 du cours M244.
+
+**User stories.**
+- En tant que consultant, je veux exporter un rapport PDF d'un concurrent pour le joindre à un livrable client.
+- En tant qu'étudiant, je veux exporter un rapport mensuel pour mon dossier de soutenance.
+
+**Critères d'acceptation.**
+- Bouton "Exporter PDF" présent sur `/competitors/[id]` et sur `/dashboard`.
+- Génération côté serveur (Playwright print-to-PDF d'une page Next.js dédiée `/exports/competitor/[id]?period=30d&token=...`).
+- PDF structuré : couverture (logo Radar, nom concurrent, période, date génération), Synthèse exécutive, Méthodologie (cycle M244, sources collectées, score CRAAP moyen), Analyse SWOT, Analyse PESTEL si disponible, Liste des Movement avec sources, Signaux faibles associés, Annexe (URL des sources avec score CRAAP individuel).
+- Génération asynchrone (job `export.pdf`), email envoyé à l'utilisateur quand prêt avec lien de téléchargement signé valable 24h.
+- Stockage du PDF : Vercel Blob en V2, `/var/lib/radar/exports` sur le VPS en V1, cleanup après 30 jours.
+
+**Dépendances.** F4 (composants UI réutilisés), Playwright (déjà dans `apps/agent` pour la collecte).
+
+### 7.8 F7 : Gestion entreprise / concurrents / axes (CRUD)
+
+**Description.** Pages Settings pour modifier le profil entreprise, ajouter/supprimer des concurrents, activer/désactiver des axes, configurer notifications.
+
+**User stories.**
+- En tant qu'utilisateur, je veux ajouter un nouveau concurrent à tout moment.
+- En tant qu'utilisateur, je veux retirer un concurrent que je ne suis plus.
+- En tant qu'utilisateur, je veux modifier les axes activés sans devoir refaire l'onboarding.
+- En tant qu'utilisateur, je veux changer la fréquence de mes emails.
+
+**Critères d'acceptation.**
+- Page `/settings/company` : édition `CompanyProfile` (nom, site, secteur, ICP).
+- Page `/settings/competitors` : table avec colonnes (nom, site, secteur, axes actifs, dernière collecte, actions). CRUD complet. Ajout déclenche un `deep-research.competitor` job.
+- Page `/settings/axes` : grille toggleable, application bulk ou par concurrent.
+- Page `/settings/notifications` : `digestFrequency` (daily / weekly / never), `notificationEmail` (différent du compte), `criticalAlertsOnly` (bool).
+- Page `/settings/account` : email, mot de passe, session active list, suppression compte.
+- Toutes les modifications loggées dans `AuditLog{userId, action, target, beforeJson, afterJson, at}` (RGPD).
+
+**Dépendances.** F1, F2, schéma complet.
+
+### 7.9 Matrice MoSCoW
+
+| Priorité | Features | Justification |
+|---|---|---|
+| Must (V1 sans ça pas de soutenance) | F1, F2, F3, F4, F5, F7 | Sans auth, onboarding, cycle, dashboard, digest et CRUD, le produit ne fait pas une boucle d'usage complète. |
+| Should (V1 si temps) | F6 (Export PDF) | L'export PDF est attendu par les personas Consultant et Étudiant mais peut être rattrapé en post-soutenance si le sprint 6 dérape. |
+| Could (V1+) | Notifications push, intégration Slack, webhooks sortants | Demandé par le persona Dirigeant PME en V2 commerciale. |
+| Won't (jamais V1) | Multi-tenant entreprise, SSO SAML, conformité ISO 27001, app mobile native | Hors portée d'un MVP académique. |
+
+---
+
+## 8. ARCHITECTURE DES DONNÉES (PRISMA + ERD)
+
+### 8.1 Principes de modélisation
+
+1. **Source unique de vérité** : Postgres. Pas de cache Redis en V1, pas d'event sourcing, pas de CQRS.
+2. **UUID v7** pour toutes les clés primaires (Postgres-natif via `gen_random_uuid()`, ordonné dans le temps, idéal pour les index).
+3. **Soft-delete** systématique sur les entités sensibles (`User`, `Competitor`, `CompanyProfile`) via colonne `deletedAt`. Hard-delete uniquement par job `*.purge` exécuté à T+7 jours pour conformité RGPD.
+4. **Snapshots immuables** pour les analyses (`SWOTSnapshot`, `PESTELSnapshot`) : on ne modifie jamais une analyse passée, on en crée une nouvelle. Permet la timeline 90 jours et l'audit.
+5. **Audit log** sur toutes les mutations de données utilisateur (table `AuditLog` JSONB).
+6. **Indexation pragmatique** : indices sur les FKs systématiquement, indices composites sur les requêtes du feed (`(userId, createdAt desc)` partout où c'est utile).
+7. **Cascades explicites** : `onDelete: Cascade` sur les relations de composition (ex : `Competitor → CompetitorAxis`), `onDelete: Restrict` sur les relations référentielles (ex : `Movement → Competitor`).
+8. **Pas de logique métier en BD** : pas de triggers, pas de fonctions PL/pgSQL. Toute la logique reste en TypeScript pour rester testable et debuggable.
+
+### 8.2 ERD complet (vue logique)
+
+```
+                              ┌──────────────┐
+                              │     User     │
+                              └──────┬───────┘
+                                     │ 1
+              ┌──────────────────────┼──────────────────────────┐
+              │ N                    │ 1                        │ N
+        ┌─────▼──────┐       ┌───────▼──────────┐         ┌─────▼──────┐
+        │  Account   │       │  CompanyProfile  │         │  Setting   │
+        │  (OAuth)   │       └───────┬──────────┘         └────────────┘
+        └────────────┘               │ 1
+                                     │
+              ┌──────────────────────┼──────────────────────┐
+              │ N                    │ N                    │ N
+        ┌─────▼──────┐         ┌─────▼────────┐       ┌─────▼─────────┐
+        │ Competitor │         │ VeilleCycle  │       │ EmailDigest   │
+        └─────┬──────┘         └─────┬────────┘       └───────────────┘
+              │                      │
+              │ N (via               │ 1
+              │  CompetitorAxis)     │
+              │                      ▼
+        ┌─────▼─────────────┐   ┌──────────────────────────────────────┐
+        │ SurveillanceAxis  │   │ AgentRun                             │
+        │ (catalogue)       │   │ (1 par appel d'agent dans le cycle)  │
+        └───────────────────┘   └──────────────────────────────────────┘
+              │                      │
+              │                      │ 1
+              │                      ▼
+              │                 ┌──────────────┐ N
+              │              ┌──┤    Source    │────────┐
+              │              │  └──────┬───────┘        │
+              │              │ 1       │ 1              │
+              │              │         ▼                │
+              │              │  ┌──────────────┐        │
+              │              │  │ SourceCRAAP  │        │
+              │              │  └──────────────┘        │
+              │              │                          │
+              │      ┌───────▼────┐              ┌──────▼──────────┐
+              │      │  Movement  │              │  WeakSignal     │
+              │      │  (alerte)  │              │  (signal faible)│
+              │      └─────┬──────┘              └─────────────────┘
+              │            │ N
+              │            ▼
+              │      ┌──────────────────┐
+              │      │ MovementSource   │
+              │      └──────────────────┘
+              │
+              │      ┌──────────────────┐  ┌──────────────────┐
+              └─────▶│  SWOTSnapshot    │  │  PESTELSnapshot  │
+                     │  (par concurrent)│  │  (par secteur)   │
+                     └──────────────────┘  └──────────────────┘
+
+                              ┌──────────────┐
+                              │   AuditLog   │
+                              │   (transv.)  │
+                              └──────────────┘
+```
+
+### 8.3 Détail des modèles
+
+#### Authentification
+
+| Modèle | Champs clés | Notes |
+|---|---|---|
+| `User` | `id` UUID PK, `email` unique, `name`, `passwordHash?`, `emailVerifiedAt?`, `image?`, `createdAt`, `updatedAt`, `deletedAt?` | `passwordHash` nullable pour comptes OAuth-only |
+| `Account` | `id` PK, `userId` FK→User, `provider` ('google'\|'github'), `providerAccountId`, `accessToken?`, `refreshToken?`, `expiresAt?` | Multi-provider possible par User |
+| `Session` | `id` PK, `userId` FK→User, `token` unique, `expiresAt`, `userAgent?`, `ipAddress?` | Sessions DB-backed Better-Auth |
+| `VerificationToken` | `id` PK, `identifier` (email), `token` unique hashé, `purpose` ('email_verify'\|'password_reset'), `expiresAt`, `usedAt?` | Single-use, courte durée |
+
+#### Profil business
+
+| Modèle | Champs clés | Notes |
+|---|---|---|
+| `CompanyProfile` | `id` PK, `userId` FK→User unique, `name`, `website`, `sector?`, `sizeBand?` (`'1-10'`\|`'11-50'`\|...), `country` default 'MA', `icp?`, `keywords` String[], `enrichedAt?`, `createdAt`, `updatedAt` | Relation 1-1 avec User en V1 (1 user = 1 entreprise) |
+| `Competitor` | `id` PK, `companyProfileId` FK→CompanyProfile, `name`, `website`, `sector?`, `sizeBand?`, `foundedYear?`, `headquartersCity?`, `primaryProducts` String[], `enrichedAt?`, `lastCollectedAt?`, `createdAt`, `updatedAt`, `deletedAt?` | N par CompanyProfile, soft-delete |
+| `SurveillanceAxis` | `id` PK, `slug` unique (`'recruiting'`\|`'strategy'`\|`'tech'`\|`'digital'`\|`'compliance'`), `nameI18n` JSONB (`{fr, en}`), `description`, `icon`, `colorToken` | Catalogue statique seedé |
+| `CompetitorAxis` | `competitorId` FK→Competitor, `axisId` FK→SurveillanceAxis, `enabled` bool, `priority` int default 0 | PK composite (competitorId, axisId) |
+
+#### Cycle de veille et exécution
+
+| Modèle | Champs clés | Notes |
+|---|---|---|
+| `VeilleCycle` | `id` PK, `userId` FK→User, `cycleDate` Date, `kind` (`'daily'`\|`'weekly_pestel'`\|`'manual'`), `status` (`'pending'`\|`'running'`\|`'completed'`\|`'partial_success'`\|`'failed'`), `startedAt?`, `endedAt?`, `errorMessage?`, `tokensInTotal` int default 0, `tokensOutTotal` int default 0, `costUsdTotal` Decimal default 0, `createdAt` | Index unique `(userId, cycleDate, kind)` (idempotence) |
+| `AgentRun` | `id` PK, `cycleId` FK→VeilleCycle, `agentName` (`'deep_research'`\|`'collector'`\|...), `competitorId?` FK→Competitor (optionnel selon agent), `status` (`'success'`\|`'failed'`\|`'timeout'`), `model` (`'claude-opus-4-7'`\|...), `startedAt`, `endedAt?`, `tokensIn?`, `tokensOut?`, `costUsd?`, `inputJson` JSONB, `outputJson?` JSONB, `errorMessage?` | Index `(cycleId, agentName)`. JSONB pour rejouer / debugger |
+
+#### Données collectées
+
+| Modèle | Champs clés | Notes |
+|---|---|---|
+| `Source` | `id` PK, `cycleId` FK→VeilleCycle, `competitorId` FK→Competitor, `axisId?` FK→SurveillanceAxis, `url` Text, `urlNormalized` Text (sans tracking params, lowercased), `domain`, `title`, `publishedAt?`, `collectedAt`, `language` Char(2), `rawContent` Text, `summary?`, `contentHash` Char(64) (SHA-256 du `rawContent`) | Index unique `(competitorId, urlNormalized)` (déduplication intra-concurrent), index `(contentHash)` (déduplication globale) |
+| `SourceCRAAP` | `sourceId` FK→Source PK, `currency` Float, `relevance` Float, `authority` Float, `accuracy` Float, `purpose` Float, `global` Float, `justification` Text, `rejected` bool, `evaluatedAt` | 1-1 avec Source |
+
+#### Sortie utilisateur
+
+| Modèle | Champs clés | Notes |
+|---|---|---|
+| `Movement` | `id` PK, `cycleId` FK→VeilleCycle, `competitorId` FK→Competitor, `axisId` FK→SurveillanceAxis, `title`, `summary` Text, `severity` (`'low'`\|`'medium'`\|`'high'`\|`'critical'`), `craapAvg` Float, `dedupHash` Char(64) (hash sémantique pour dédup inter-cycle), `embeddingVector` Vector(1536) (pgvector pour dédup), `createdAt` | Index `(competitorId, createdAt desc)`, `(cycleId, severity)`, `dedupHash` |
+| `MovementSource` | `movementId` FK→Movement, `sourceId` FK→Source, `weight` Float | PK composite, sources qui supportent un Movement |
+| `MovementUserState` | `movementId` FK→Movement, `userId` FK→User, `status` (`'new'`\|`'seen'`\|`'saved'`\|`'ignored'`), `notes?` Text, `updatedAt` | PK composite (movementId, userId). Sépare les `Movement` (immuables) du statut user (mutable). |
+| `SWOTSnapshot` | `id` PK, `competitorId` FK→Competitor, `cycleId` FK→VeilleCycle, `snapshotDate` Date, `strengths` String[], `weaknesses` String[], `opportunities` String[], `threats` String[], `createdAt` | Index `(competitorId, snapshotDate desc)`. Immuable. |
+| `PESTELSnapshot` | `id` PK, `companyProfileId` FK→CompanyProfile, `cycleId` FK→VeilleCycle, `snapshotDate` Date, `political` String[], `economic` String[], `social` String[], `technological` String[], `environmental` String[], `legal` String[], `createdAt` | Index `(companyProfileId, snapshotDate desc)` |
+| `WeakSignal` | `id` PK, `companyProfileId` FK→CompanyProfile, `description` Text, `intensity` (`'low'`\|`'medium'`\|`'high'`), `horizon` (`'short'`\|`'medium'`\|`'long'`), `detectedAt`, `expiredAt?`, `firstSeenSourceId?` FK→Source | Expire après 30 jours sans renouvellement |
+| `WeakSignalSource` | `weakSignalId` FK→WeakSignal, `sourceId` FK→Source | PK composite |
+
+#### Communications et préférences
+
+| Modèle | Champs clés | Notes |
+|---|---|---|
+| `EmailDigest` | `id` PK, `userId` FK→User, `period` (`'daily'`\|`'weekly'`), `sentAt`, `messageId` (Resend), `status` (`'sent'`\|`'bounced'`\|`'complained'`\|`'opened'`), `movementCount` int, `cycleIds` String[] | Historique envois |
+| `Setting` | `userId` FK→User PK, `digestFrequency` (`'daily'`\|`'weekly'`\|`'never'`\|`'paused'`), `notificationEmail?` (différent du compte), `criticalAlertsOnly` bool default false, `timezone` default 'Africa/Casablanca', `language` (`'fr'`\|`'en'`) default 'fr', `updatedAt` | Préférences utilisateur |
+
+#### Transversal
+
+| Modèle | Champs clés | Notes |
+|---|---|---|
+| `AuditLog` | `id` PK, `userId?` FK→User, `actor` (`'user'`\|`'system'`\|`'admin'`), `action` Text, `targetType?` Text, `targetId?` Text, `beforeJson?` JSONB, `afterJson?` JSONB, `ipAddress?`, `userAgent?`, `at` | Index `(userId, at desc)`. Append-only. |
+
+### 8.4 Stratégie d'indexation
+
+| Index | Justification |
+|---|---|
+| `Source(competitorId, urlNormalized)` UNIQUE | Évite collecter 2x la même URL pour un concurrent dans une même cycle |
+| `Source(contentHash)` | Détection de réplication de contenu inter-concurrents |
+| `Movement(competitorId, createdAt desc)` | Feed concurrent, requête dominante |
+| `Movement(dedupHash)` | Dédup au moment du `Movement` insert |
+| `MovementUserState(userId, status)` | Filtre "Sauvegardé / Ignoré" |
+| `VeilleCycle(userId, cycleDate, kind)` UNIQUE | Idempotence cycle |
+| `AgentRun(cycleId, agentName)` | Vue d'avancement cycle |
+| `EmailDigest(userId, sentAt desc)` | Historique digest |
+| `AuditLog(userId, at desc)` | Affichage audit utilisateur |
+
+Extension Postgres requise : `pgvector` pour `Movement.embeddingVector` (dédup par similarité). Installable simplement sur Postgres 17.
+
+### 8.5 Cascades et intégrité référentielle
+
+| Relation | onDelete | Raison |
+|---|---|---|
+| `Account → User`, `Session → User`, `Setting → User` | Cascade | Données auth dépendantes du compte |
+| `CompanyProfile → User` | Cascade | 1-1 lié au compte |
+| `Competitor → CompanyProfile` | Cascade | Composition |
+| `CompetitorAxis → Competitor`, `CompetitorAxis → SurveillanceAxis` | Cascade / Restrict | Cascade côté Competitor (suppression concurrent), Restrict côté Axis (catalogue protégé) |
+| `Source → VeilleCycle`, `Source → Competitor` | Restrict | Une source historique ne disparaît pas si on supprime le cycle parent (cycle conservé en read-only) |
+| `Movement → Competitor` | Restrict | Mêmes raisons : audit historique |
+| `MovementSource → Movement`, `MovementSource → Source` | Cascade | Lien |
+| `MovementUserState → Movement`, `MovementUserState → User` | Cascade | État éphémère |
+| `SWOTSnapshot → Competitor` | Restrict | Historique conservé |
+| `WeakSignalSource → WeakSignal`, `→ Source` | Cascade | Lien |
+| `AuditLog → User` | Set Null | Audit conservé même si user purgé (anonymisation) |
+
+### 8.6 Migration et seed strategy
+
+- **Migrations** : `prisma migrate dev` en local, `prisma migrate deploy` en CI déploiement. Pas de DDL manuel.
+- **Seed** dans `packages/database/seed/index.ts` :
+  - 5 `SurveillanceAxis` du catalogue (recruiting, strategy, tech, digital, compliance)
+  - 1 `User` admin de test (DEV uniquement, derrière flag `RADAR_SEED_DEV=1`)
+  - 1 `CompanyProfile` + 3 `Competitor` exemples pour démo soutenance
+- **Migration de l'ancien scaffold** : la première migration v2.1 doit DROP les anciennes tables (`Rapport`, `Source` v1, `SWOT`, `PESTEL`, `SignalFaible`, `EvenementRapport`) et créer le nouveau schéma. Comme aucune donnée prod n'existe, c'est non-destructif.
+
+### 8.7 Considérations RGPD
+
+- **Données collectées** : email user, mot de passe hashé, données entreprises tierces (concurrents publics).
+- **Base légale traitement données concurrents** : intérêt légitime (veille publique, sources accessibles librement, pas de scraping de données personnelles concurrentes).
+- **Droit à l'oubli** : suppression compte = soft-delete immédiat + purge dure à T+7 jours via job `user.purge`. Cascade sur `CompanyProfile`, `Competitor`, `Movement`, `Source`, etc. `AuditLog` anonymisé (userId nullé).
+- **Droit d'accès** : page `/settings/account/data-export` génère un dump JSON de toutes les données du user (job `user.export`, lien email). Format machine-lisible.
+- **Stockage** : Postgres VPS Maroc (V1) ou région Europe (V2 Neon Frankfurt). Pas de transfert hors UE/Maroc.
+- **Sous-traitants** : Anthropic (US, DPA signé), Resend (US, DPA signé), Tavily (US, DPA si dispo, sinon hash des requêtes). À documenter en annexe.
+
+### 8.8 Volumétrie estimée
+
+| Entité | Volume V1 (10 users actifs, 5 concurrents chacun, 6 mois) | Volume V2 cible (1 000 users actifs) |
+|---|---|---|
+| `User` | 10 | 1 000 |
+| `Competitor` | 50 | 5 000 |
+| `VeilleCycle` | ~1 800 (10 users × 180 jours) | 180 000 |
+| `AgentRun` | ~12 600 (7 agents × 1 800) | 1.26 M |
+| `Source` | ~90 000 (50 concurrents × 10 sources × 180 jours) | 9 M |
+| `Movement` | ~9 000 (50 × 1 mvt/concurrent/jour) | 900 K |
+| `SWOTSnapshot` | ~9 000 (50 × 180) | 900 K |
+| Total Postgres | < 5 GB | ~50 GB |
+
+Postgres 17 sur VPS 4 GB tient confortablement la V1. La V2 nécessitera Postgres managé (Neon ou Supabase) avec auto-scaling.
+
+---
+
+## 9. ENDPOINTS API
+
+### 9.1 Conventions générales
+
+- **Style** : REST sur HTTP/1.1 (HTTP/2 via reverse proxy). Pas de tRPC en V1 pour préserver la simplicité de debug et l'interopérabilité avec l'agent (Fastify pur).
+- **Préfixe** : `/api/v1/...` pour le web public, `/v1/...` pour l'agent (`agent.radar.example`).
+- **Format** : JSON (`Content-Type: application/json`). UTF-8 strict.
+- **Validation** : Zod côté serveur (les schémas vivent dans `packages/api-contracts`).
+- **Authentification utilisateur** : cookie de session HttpOnly + SameSite=Lax (Better-Auth). Pas de JWT côté client.
+- **Authentification machine-to-machine** (web ↔ agent) : header `X-Radar-Signature: t=<unix_ts>,v1=<hmac_sha256>`. Le secret est partagé via env (`RADAR_HMAC_SECRET`). Tolérance `t` ± 5 min pour éviter replays. Header `X-Radar-Nonce` (UUID) check de réutilisation sur 10 min via Postgres.
+
+### 9.2 Format de réponse standard
+
+**Succès** :
+```json
+{ "data": <payload>, "meta": { "requestId": "uuid" } }
+```
+
+**Erreur** :
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR" | "UNAUTHORIZED" | "NOT_FOUND" | ...,
+    "message": "human-readable",
+    "details": { ... } | null,
+    "requestId": "uuid"
+  }
+}
+```
+
+Codes HTTP utilisés : 200, 201, 202 (cycle async accepté), 204, 400, 401, 403, 404, 409 (conflit), 422 (validation), 429 (rate limit), 500, 502 (agent down), 503.
+
+### 9.3 Rate limiting
+
+| Surface | Limite V1 | Stratégie |
+|---|---|---|
+| `/api/v1/auth/*` (login, signup) | 10 req / IP / minute | Postgres-backed (`RateLimitBucket` table, simple) |
+| `/api/v1/cycles/run` (déclenchement manuel) | 1 req / user / 4h | Métadonnée user |
+| `/api/v1/exports/pdf` | 5 req / user / heure | Métadonnée user |
+| Webhooks `/api/webhooks/*` | 100 req / minute / source | Suffisant pour Resend / agent V1 |
+| Tout le reste | 60 req / IP / minute | Soft limit |
+
+### 9.4 Endpoints publics (web)
+
+#### Auth (F1)
+
+| Méthode | Endpoint | Body | Réponse |
+|---|---|---|---|
+| POST | `/api/v1/auth/signup` | `{ name, email, password }` | 201 `{ user, sessionToken }` |
+| POST | `/api/v1/auth/login` | `{ email, password }` | 200 `{ user, sessionToken }` |
+| POST | `/api/v1/auth/logout` |  | 204 |
+| POST | `/api/v1/auth/oauth/google` | `{ code, state }` | 200 `{ user, sessionToken }` |
+| POST | `/api/v1/auth/password-reset/request` | `{ email }` | 204 (no leak) |
+| POST | `/api/v1/auth/password-reset/confirm` | `{ token, newPassword }` | 200 |
+| POST | `/api/v1/auth/email/verify` | `{ token }` | 200 |
+| POST | `/api/v1/auth/email/verify/resend` | (auth) | 204 |
+| GET | `/api/v1/auth/me` | (auth) | 200 `{ user, settings }` |
+
+#### CompanyProfile et Competitor (F7, F2)
+
+| Méthode | Endpoint | Body | Réponse |
+|---|---|---|---|
+| GET | `/api/v1/company` |  | 200 `{ companyProfile }` |
+| PUT | `/api/v1/company` | `{ name?, website?, sector?, sizeBand?, icp?, keywords? }` | 200 |
+| POST | `/api/v1/company/onboard` | `{ name, website }` | 201 (lance Deep Research) |
+| GET | `/api/v1/competitors` | (query : `includeDeleted=0`) | 200 `{ competitors[] }` |
+| POST | `/api/v1/competitors` | `{ name, website }` | 201 `{ competitor }` (lance Deep Research) |
+| GET | `/api/v1/competitors/:id` |  | 200 `{ competitor, latestSwot, recentMovements }` |
+| PUT | `/api/v1/competitors/:id` | `{ name?, website?, sector? }` | 200 |
+| DELETE | `/api/v1/competitors/:id` |  | 204 (soft-delete) |
+
+#### Axes de surveillance (F2, F7)
+
+| Méthode | Endpoint | Body | Réponse |
+|---|---|---|---|
+| GET | `/api/v1/axes` |  | 200 `{ axes[] }` (catalogue) |
+| GET | `/api/v1/competitors/:id/axes` |  | 200 `{ axes[] }` (avec `enabled`) |
+| PUT | `/api/v1/competitors/:id/axes` | `{ axisIds: string[] }` | 200 (sync : enabled = true pour les listés, false pour les autres) |
+
+#### Cycles et Movements (F3, F4)
+
+| Méthode | Endpoint | Body | Réponse |
+|---|---|---|---|
+| GET | `/api/v1/cycles` | (query : `limit=20&since=...`) | 200 `{ cycles[] }` |
+| GET | `/api/v1/cycles/:id` |  | 200 `{ cycle, agentRuns[], movementCount }` |
+| POST | `/api/v1/cycles/run` | `{ kind: 'manual' }` | 202 `{ cycleId }` (rate-limited 1/4h) |
+| GET | `/api/v1/movements` | (query : `competitorId?, axisId?, severity?, status?, since?, cursor?, limit=50`) | 200 `{ movements[], nextCursor? }` |
+| GET | `/api/v1/movements/:id` |  | 200 `{ movement, sources[], userState }` |
+| PATCH | `/api/v1/movements/:id` | `{ status: 'seen'\|'saved'\|'ignored', notes? }` | 200 |
+
+#### Analyses (F4)
+
+| Méthode | Endpoint | Body | Réponse |
+|---|---|---|---|
+| GET | `/api/v1/competitors/:id/swot` | (query : `at=date`) | 200 `{ snapshot }` (latest si pas de `at`) |
+| GET | `/api/v1/competitors/:id/swot/history` | (query : `from, to`) | 200 `{ snapshots[] }` |
+| GET | `/api/v1/pestel` | (query : `at=date`) | 200 `{ snapshot }` |
+| GET | `/api/v1/weak-signals` | (query : `intensity?, horizon?`) | 200 `{ weakSignals[] }` |
+| GET | `/api/v1/weak-signals/:id` |  | 200 `{ weakSignal, sources[] }` |
+
+#### Settings et notifications (F5, F7)
+
+| Méthode | Endpoint | Body | Réponse |
+|---|---|---|---|
+| GET | `/api/v1/settings` |  | 200 `{ settings }` |
+| PUT | `/api/v1/settings` | `{ digestFrequency?, notificationEmail?, criticalAlertsOnly?, timezone?, language? }` | 200 |
+| POST | `/api/v1/settings/digest/preview` |  | 200 `{ html, text }` (rendu Resend test) |
+| GET | `/api/v1/settings/digest/unsubscribe?token=...` |  | 200 (page HTML, pas JSON) |
+
+#### Exports (F6)
+
+| Méthode | Endpoint | Body | Réponse |
+|---|---|---|---|
+| POST | `/api/v1/exports/pdf` | `{ type: 'competitor'\|'period', competitorId?, from?, to? }` | 202 `{ exportId }` (job async) |
+| GET | `/api/v1/exports/:id` |  | 200 `{ export, downloadUrl? }` |
+
+#### Compte et RGPD
+
+| Méthode | Endpoint | Body | Réponse |
+|---|---|---|---|
+| DELETE | `/api/v1/account` | `{ confirmEmail }` | 202 (soft-delete + purge job +7j) |
+| POST | `/api/v1/account/data-export` |  | 202 `{ exportId }` (email à venir) |
+| GET | `/api/v1/account/audit-log` | (query : `cursor?, limit=50`) | 200 `{ entries[], nextCursor? }` |
+
+### 9.5 Endpoints internes (agent)
+
+L'agent expose une API minimale, **non publique**, accessible via reverse proxy interne ou via réseau privé Docker. Toutes les requêtes signées HMAC.
+
+| Méthode | Endpoint | Body | Réponse |
+|---|---|---|---|
+| GET | `/v1/health` |  | 200 `{ ok, ts, uptime, queueDepth }` |
+| POST | `/v1/run` | `{ jobName: 'cycle.daily'\|'cycle.weekly_pestel'\|'deep-research.company'\|'deep-research.competitor'\|'export.pdf', payload: {...} }` | 202 `{ jobId }` |
+| GET | `/v1/jobs/:id` |  | 200 `{ job, attempts[], lastError? }` |
+| POST | `/v1/jobs/:id/retry` | (admin) | 202 |
+
+### 9.6 Webhooks entrants (web → écouteur de tiers et agent → web)
+
+| Méthode | Endpoint | Source | Body |
+|---|---|---|---|
+| POST | `/api/webhooks/agent` | apps/agent | `{ event: 'cycle.completed'\|'cycle.failed'\|'deep-research.completed'\|'export.ready', payload }` (signé HMAC) |
+| POST | `/api/webhooks/resend` | Resend | Format Resend (signé via `RESEND_WEBHOOK_SECRET`) |
+
+### 9.7 Documentation OpenAPI
+
+- Génération automatique à partir des schémas Zod via `zod-to-openapi`.
+- Servi sur `/api/v1/openapi.json` et UI Swagger sur `/api/v1/docs` (protégé par session admin en V1).
+- Inclus dans le rapport académique en annexe.
+
+---
+
+> **Fin du Bloc 2 · Architecture et spécifications.** Sections 6 à 9 livrées. Le Bloc 3 couvrira les exigences UI/UX (mockups Intel Dark des 10 écrans), l'authentification et autorisations détaillées (lib choisie, flows complets), les règles métier formalisées (formules CRAAP, dédup, recoupement) et les contraintes techniques (RGPD, SLA, conformité).
 
 ---
