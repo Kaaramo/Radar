@@ -1,0 +1,138 @@
+// Prisma schema RADAR
+// docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StatutRapport {
+  demande
+  collecte
+  evaluation
+  analyse
+  redaction
+  pret
+  echec
+}
+
+enum Profondeur {
+  rapide
+  standard
+  approfondi
+}
+
+enum IntensiteSignal {
+  faible
+  moyenne
+  forte
+}
+
+enum HorizonSignal {
+  court
+  moyen
+  long
+}
+
+model Rapport {
+  id           String         @id @default(uuid())
+  sujet        String
+  contexte     String?
+  profondeur   Profondeur     @default(standard)
+  langue       String         @default("fr")
+  statut       StatutRapport  @default(demande)
+  progressionPct Int          @default(0)
+  etape        String?
+  synthese     String?
+  erreur       String?
+  creeLe       DateTime       @default(now())
+  majLe        DateTime       @updatedAt
+  termineLe    DateTime?
+
+  sources         Source[]
+  swot            SWOT?
+  pestel          PESTEL?
+  signauxFaibles  SignalFaible[]
+  evenements      EvenementRapport[]
+
+  @@index([statut])
+  @@index([creeLe])
+}
+
+model Source {
+  id          String   @id @default(uuid())
+  rapportId   String
+  rapport     Rapport  @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+  url         String
+  titre       String
+  domaine     String
+  publieLe    DateTime?
+  collecteLe  DateTime @default(now())
+  resume      String?
+  langue      String   @default("fr")
+  rejetee     Boolean  @default(false)
+
+  craap       ScoreCRAAP?
+
+  @@index([rapportId])
+  @@unique([rapportId, url])
+}
+
+model ScoreCRAAP {
+  sourceId      String   @id
+  source        Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  currency      Float
+  relevance     Float
+  authority     Float
+  accuracy      Float
+  purpose       Float
+  global        Float
+  justification String
+}
+
+model SWOT {
+  rapportId     String   @id
+  rapport       Rapport  @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+  strengths     String[]
+  weaknesses    String[]
+  opportunities String[]
+  threats       String[]
+}
+
+model PESTEL {
+  rapportId      String   @id
+  rapport        Rapport  @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+  political      String[]
+  economic       String[]
+  social         String[]
+  technological  String[]
+  environmental  String[]
+  legal          String[]
+}
+
+model SignalFaible {
+  id          String          @id @default(uuid())
+  rapportId   String
+  rapport     Rapport         @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+  description String
+  intensite   IntensiteSignal
+  horizon     HorizonSignal
+  sourcesIds  String[]
+
+  @@index([rapportId])
+}
+
+model EvenementRapport {
+  id        String   @id @default(uuid())
+  rapportId String
+  rapport   Rapport  @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+  type      String
+  payload   Json
+  emisLe    DateTime @default(now())
+
+  @@index([rapportId, emisLe])
+}

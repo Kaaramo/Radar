@@ -1,0 +1,25 @@
+{
+  "name": "@radar/agent-prompts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./collecteur": "./src/collecteur/index.ts",
+    "./evaluateur-craap": "./src/evaluateur-craap/index.ts",
+    "./analyste-swot": "./src/analyste-swot/index.ts",
+    "./analyste-pestel": "./src/analyste-pestel/index.ts",
+    "./detecteur-signaux-faibles": "./src/detecteur-signaux-faibles/index.ts",
+    "./redacteur": "./src/redacteur/index.ts"
+  },
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

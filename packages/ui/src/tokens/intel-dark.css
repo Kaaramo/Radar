@@ -1,0 +1,29 @@
+:root {
+  --radar-bg-base: #0a0e14;
+  --radar-bg-raised: #10151d;
+  --radar-bg-sunken: #070a0f;
+  --radar-bg-overlay: #161c25;
+
+  --radar-fg-primary: #e6edf3;
+  --radar-fg-secondary: #9da7b3;
+  --radar-fg-muted: #5c6773;
+  --radar-fg-inverse: #0a0e14;
+
+  --radar-accent-primary: #0071c5;
+  --radar-accent-primary-hover: #0090f0;
+  --radar-accent-secondary: #00c7e0;
+  --radar-accent-success: #3fb950;
+  --radar-accent-warning: #d29922;
+  --radar-accent-danger: #f85149;
+
+  --radar-border-subtle: #1f2730;
+  --radar-border-default: #2d3640;
+  --radar-border-strong: #3d4752;
+
+  --radar-font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --radar-font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+
+  --radar-radius-sm: 0.25rem;
+  --radar-radius-md: 0.5rem;
+  --radar-radius-lg: 0.75rem;
+}

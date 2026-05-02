@@ -1,0 +1,19 @@
+@import "tailwindcss";
+@import "@radar/ui/tokens/css";
+
+@theme {
+  --color-bg-base: var(--radar-bg-base);
+  --color-bg-raised: var(--radar-bg-raised);
+  --color-fg-primary: var(--radar-fg-primary);
+  --color-fg-secondary: var(--radar-fg-secondary);
+  --color-accent: var(--radar-accent-primary);
+  --font-sans: var(--radar-font-sans);
+  --font-mono: var(--radar-font-mono);
+}
+
+html, body {
+  background: var(--radar-bg-base);
+  color: var(--radar-fg-primary);
+  font-family: var(--radar-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
