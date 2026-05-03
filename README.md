@@ -134,95 +134,53 @@ Radar n'est pas un projet d'ingénierie auquel on a ajouté du vocabulaire de ve
 
 ---
 
-## Architecture du monorepo
+## Architecture cible
 
 ```
 radar/
-├── apps/
-│   ├── web/                    [Karamo] application Next.js (dashboard, API)
-│   └── agent/                  [Bachirou] OpenClaw orchestrateur + 5 sous-agents
-│
-├── packages/
-│   ├── database/               schema Prisma + client Postgres
-│   ├── api-contracts/          schemas Zod, payloads webhooks
-│   ├── agent-prompts/          prompts M244 codés (1 par agent)
-│   ├── ui/                     composants partagés (Intel Dark theme)
-│   └── shared/                 logger, errors, dates utils
-│
-├── infra/
-│   └── docker/                 Dockerfile agent, compose Postgres local
-│
-├── docs/
-│   └── PRD-RADAR-v2.0.md       Product Requirements Document complet
-│
-└── .github/                    workflows CI, templates issues / PR
+├── frontend/                   [Karamo] Next.js (App Router), UI, emails, dashboard
+├── backend/                    [Bachirou] OpenClaw, sous-agents, acquisition, orchestration
+├── database/                   [Karamo] schéma Prisma, contrats partagés, Postgres local
+└── docs/                       PRD, note de cadrage, supports académiques
 ```
+
+Le repo est volontairement vierge à ce stade : structure de dossiers posée, scaffolding non engagé. Les choix de stack sont arrêtés dans la note de cadrage et seront matérialisés au démarrage du sprint 1.
 
 ---
 
-## Stack technique
+## Stack arrêtée
 
 | Couche | Choix |
 |---|---|
-| Monorepo | pnpm 10 workspaces + Turborepo 2 |
-| Web | Next.js 16 (App Router) + Tailwind 4 |
-| Agent | Node.js 24 + Fastify 5 + Anthropic SDK (Claude Opus 4.7) |
-| Database | PostgreSQL 17 + Prisma 6 |
-| Contracts | Zod 3 |
-| UI | Tokens Intel Dark + composants typés |
-| Infra | Docker (Postgres local + image agent multi-stage) |
-| CI | GitHub Actions (typecheck, lint, build, test) |
-
----
-
-## Démarrage local
-
-**Prérequis :** Node 24+, pnpm 10+, Docker Desktop.
-
-```bash
-# 1. Installation
-pnpm install
-cp .env.example .env
-
-# 2. Postgres local
-docker compose -f infra/docker/postgres-local/docker-compose.yml up -d
-
-# 3. Migrations + seed
-pnpm db:migrate
-pnpm db:seed
-
-# 4. Lancement web + agent en parallèle
-pnpm dev
-```
-
-Web : http://localhost:3000 · Agent : http://localhost:4000
-
-### Scripts disponibles
-
-| Commande | Description |
-|---|---|
-| `pnpm dev` | Lance web + agent en watch |
-| `pnpm build` | Build production de tous les apps |
-| `pnpm lint` | Lint tous les packages |
-| `pnpm typecheck` | Typecheck TypeScript |
-| `pnpm test` | Tests unitaires |
-| `pnpm db:migrate` | Applique les migrations Prisma |
-| `pnpm db:seed` | Seed la base |
+| Frontend | Next.js (App Router), TypeScript strict, Tailwind, Shadcn UI, Motion.dev |
+| State et formulaires | Zustand, TanStack Query, Nuqs, React Hook Form + Zod |
+| Auth | Better Auth (email/password + Google OAuth) |
+| Visualisation | Recharts |
+| Emails | React Email + Resend |
+| Backend | Node.js + TypeScript, OpenClaw, Anthropic Claude (Opus / Haiku) |
+| Acquisition | Playwright + extraction LLM |
+| Orchestration | Cron (quotidien 6h, hebdo PESTEL), file de tâches |
+| Cache et rate limit | Upstash Redis |
+| Database | PostgreSQL 17 (Neon serverless en V2), Prisma ORM |
+| Contrats inter-services | Zod, partagés entre frontend et backend |
+| Infra V1 | Docker + Caddy reverse proxy (VPS) |
+| Déploiement V2 | Frontend sur Vercel, backend conteneurisé, base sur Neon |
 
 ---
 
 ## Documentation
 
-- **[PRD complet (v2.0)](./docs/PRD-RADAR-v2.0.md)** : contexte, vision, ancrage M244, personas, parcours utilisateur, architecture, données, API, UI/UX, règles métier, coûts, phasage, indicateurs de succès, roadmap V2+
+- **[PRD RADAR](./docs/PRD-RADAR.md)** : contexte, vision, ancrage M244, personas, parcours utilisateur, architecture, données, API, UI/UX, règles métier, coûts, phasage, indicateurs de succès.
+- **[Note de cadrage v1](./Note_de_cadrage_RADAR_v1.pdf)** : arbitrage technique interne du binôme, répartition des responsabilités, décisions tranchées avant le sprint 1.
 
 ---
 
-## Auteurs
+## Répartition des responsabilités
 
-| | |
+| Auteur | Périmètre |
 |---|---|
-| **Karamo Sylla** | `apps/web` · `packages/database` · `packages/ui` · design Intel Dark |
-| **Bachirou Konaté** | `apps/agent` · `packages/agent-prompts` · `infra/` |
+| **Karamo Sylla** | `frontend/` · `database/` · UX/UI · design system · templates email · export PDF |
+| **Bachirou Konaté** | `backend/` · agents IA · acquisition · orchestration · conteneurisation |
 
 **Encadrant :** Pr. Younes Wadiai
 **Cadre :** Module M244 (Veille Technologique), Cycle Ingénieur BDIA, ENSA Tétouan
