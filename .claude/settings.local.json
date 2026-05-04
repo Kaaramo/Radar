@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"d:\\\\Users\\\\HP\\\\Bureau\\\\BDIA modules\\\\BDIA2\\\\technique de veille\\\\Radar\" -Recurse -Force)",
+      "Bash(Select-Object -Property FullName, Mode)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(dir /s /b)",
+      "WebFetch(domain:docs.openclaw.ai)",
+      "WebSearch"
+    ]
+  }
+}

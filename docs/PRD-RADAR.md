@@ -17,6 +17,7 @@
 | v1.0 | Mars 2026 | Création initiale | Cahier des charges 9 pages : contexte, vision, ancrage M244, personas, fonctionnalités MVP, stack |
 | v2.0 | Mai 2026 | Refonte complète | Élargissement du périmètre vers PRD ingénieur complet : architecture, données, API, UI/UX, règles métier, coûts, phasage. Cycle de veille aligné sur le cours (5 étapes vs 6). Persona consultant ajouté. |
 | v2.1 | Mai 2026 | Bloc 2 livré | Sections 6 à 9 ajoutées : architecture du système OpenClaw (orchestrateur, sous-agents, queue, cron, observabilité), spécifications fonctionnelles MVP F1 à F7, modèle de données Prisma complet (20 entités) et catalogue d'endpoints API REST. Réalignement explicite du modèle de données sur le produit "monitoring continu" (vs ancien scaffold "rapport one-shot"). |
+| v2.2 | Mai 2026 | Refonte architecture moteur agent | OpenClaw utilisé comme service autonome (image Docker officielle) a la place d'un wrapper Fastify custom. Les 8 agents sont des SKILL.md (markdown) et non des modules TypeScript. Suppression de pg-boss, node-cron, Tavily, Playwright. Communication agent → web via POST /api/internal/* (HTTP interne Docker) a la place des webhooks HMAC. DuckDuckGo comme provider web_search natif. Ajout d'un 8e agent : orchestrateur (coordonne le pipeline, ne fait aucune tache propre). Section 6 mise a jour en consequence. |
 
 ---
 
@@ -428,191 +429,174 @@ C'est ce moment précis qui transforme un utilisateur curieux en utilisateur eng
 
 ## 6. ARCHITECTURE DU SYSTÈME (ENGINE OPENCLAW)
 
+> **Note v2.2** : Cette section a été entièrement mise à jour suite au choix d'utiliser OpenClaw comme service Docker autonome (image officielle `ghcr.io/openclaw/openclaw:latest`) à la place d'un wrapper Fastify custom. Les agents sont désormais des fichiers SKILL.md (markdown), pas des modules TypeScript.
+
 ### 6.1 Vue d'ensemble
 
-Radar est composé de quatre tiers logiques qui collaborent pour livrer le cycle de veille. Chaque tier a une responsabilité unique, expose une interface contractuelle (HTTP signé ou requête SQL paramétrée), et peut être redémarré indépendamment.
+Radar est composé de trois services Docker qui collaborent pour livrer le cycle de veille.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          CLIENT (NAVIGATEUR)                            │
-│   Dashboard · Onboarding · Détail concurrent · Settings · Digest        │
-└────────────────────────────────┬────────────────────────────────────────┘
-                                 │ HTTPS
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     APPS/WEB · NEXT.JS 16 (App Router)                  │
-│   ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────────┐   │
-│   │  Server Comp.   │  │   API Routes     │  │  Server Actions      │   │
-│   │  (rendering)    │  │   (CRUD + auth)  │  │  (mutations)         │   │
-│   └─────────────────┘  └─────────┬────────┘  └──────────┬───────────┘   │
-│            ▲                     │                      │               │
-│            │ webhook signé HMAC  │                      │               │
-└────────────┼─────────────────────┼──────────────────────┼───────────────┘
-             │                     │                      │
-             │                     ▼                      ▼
-             │          ┌──────────────────────────────────────────────┐
-             │          │           POSTGRESQL 17 + PRISMA             │
-             │          │   User, CompanyProfile, Competitor, Cycle    │
-             │          │   Source, Movement, SWOT/PESTEL Snapshot,    │
-             │          │   WeakSignal, EmailDigest, AuditLog          │
-             │          └──────────┬─────────────────────▲─────────────┘
-             │                     │                     │
-             │                     ▼                     │
-┌────────────┴─────────────────────────────────────────────────────────────┐
-│             APPS/AGENT · NODE 24 + FASTIFY 5 (Engine OpenClaw)           │
-│                                                                          │
-│   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────┐   │
-│   │   Scheduler      │  │   Orchestrateur  │  │   Queue (pg-boss)    │   │
-│   │   (cron 06:00)   │──▶  OpenClaw        │◀─┤   jobs persistants   │   │
-│   │   (cron PESTEL)  │  │                  │  │   retry + dead-letter│   │
-│   └──────────────────┘  └────────┬─────────┘  └──────────────────────┘   │
-│                                  │                                       │
-│   ┌──────────────────────────────┴─────────────────────────────────┐     │
-│   │                    SOUS-AGENTS (6, isolés)                     │     │
-│   │  Deep Research · Collecteur · Évaluateur CRAAP                 │     │
-│   │  Analyste SWOT · Analyste PESTEL · Détecteur signaux faibles   │     │
-│   │  Rédacteur                                                     │     │
-│   └──────────┬─────────────────────────────────────────────────────┘     │
-│              │                                                           │
-│              ▼                                                           │
-│   ┌──────────────────────────────────────────────────────────────┐       │
-│   │              ADAPTATEURS LLM ET WEB                          │       │
-│   │  Anthropic SDK (Claude Opus 4.7) · Tavily (recherche web)    │       │
-│   │  Playwright (scraping ciblé) · Resend (email transactionnel) │       │
-│   └──────────────────────────────────────────────────────────────┘       │
-└──────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│                   CLIENT (NAVIGATEUR)                  │
+└────────────────────────┬───────────────────────────────┘
+                         │ HTTPS
+                         ▼
+┌────────────────────────────────────────────────────────┐
+│              APPS/WEB · NEXT.JS 16 (port 3000)         │
+│                                                        │
+│  Server Components · API Routes · Server Actions       │
+│                                                        │
+│  POST /v1/chat/completions ──────────────────────────► │──┐
+│  ◄── POST /api/internal/*  (résultats agents)          │  │
+│                                                        │  │
+│  Prisma ──► PostgreSQL 17                              │  │
+└────────────────────────────────────────────────────────┘  │
+                                                            │ HTTP interne Docker
+┌───────────────────────────────────────────────────────────▼────────┐
+│              OPENCLAW GATEWAY (port 18789)                         │
+│              ghcr.io/openclaw/openclaw:latest                      │
+│                                                                    │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │  workspace/skills/                                          │   │
+│  │    orchestrateur/SKILL.md   ← déclenché par Next.js        │   │
+│  │         │ sessions_spawn                                    │   │
+│  │         ├──► deep-research/SKILL.md  (onboarding only)     │   │
+│  │         ├──► collecteur/SKILL.md                           │   │
+│  │         ├──► evaluateur/SKILL.md                           │   │
+│  │         ├──► analyste-swot/SKILL.md                        │   │
+│  │         ├──► analyste-pestel/SKILL.md                      │   │
+│  │         ├──► detecteur-signaux-faibles/SKILL.md            │   │
+│  │         └──► redacteur/SKILL.md                            │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  Outils natifs : web_search (DuckDuckGo) · web_fetch · browser    │
+│  Cron natif : 06:00 Africa/Casablanca                              │
+│  LLM : Claude Opus 4.7 via ANTHROPIC_API_KEY                       │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 6.2 Composants
 
 | Composant | Tech | Responsabilité |
 |---|---|---|
-| `apps/web` | Next.js 16, React 19, Tailwind 4 | Rendu UI, API publique vers le client, server actions, auth, webhooks entrants signés HMAC, déclenchement manuel de cycles |
-| `apps/agent` | Node 24, Fastify 5, Anthropic SDK | Hébergement de l'orchestrateur OpenClaw, des sous-agents, du scheduler, de la queue. Service stateless, scalable horizontalement |
-| `Scheduler` | `node-cron` embarqué dans `apps/agent` | Déclenche les cycles quotidiens à 06:00 et la MAJ PESTEL le dimanche 23:00. Émet des jobs `cycle.daily` et `pestel.weekly` dans la queue |
-| `Queue` | `pg-boss` (Postgres-backed, pas de Redis V1) | Persistance des jobs, retry exponentiel, dead-letter queue, job singleton (idempotence par `cycleId`) |
-| `Orchestrateur OpenClaw` | TypeScript pur dans `apps/agent/src/orchestrator` | Sait composer les sous-agents en pipeline ou en parallèle, gère le contexte LLM, agrège les résultats, enregistre les `AgentRun` en BD |
-| `Sous-agents` | 7 modules dans `apps/agent/src/agents/*` | Chacun encapsule une compétence : invocation LLM, parsing JSON, validation Zod, persistence du résultat |
-| `Adaptateurs externes` | `apps/agent/src/adapters/*` | Wrappers typés autour de Anthropic, Tavily/Serper, Playwright, Resend. Isolent les SDK tiers du métier |
-| `PostgreSQL 17` | Self-hosted Docker en V1, hébergé Neon/Supabase en V2 | Source unique de vérité métier + queue + sessions auth |
+| `apps/web` | Next.js 16, React 19, Tailwind 4 | Rendu UI, API publique, auth, déclenchement OpenClaw, routes internes `/api/internal/*` |
+| `openclaw` | `ghcr.io/openclaw/openclaw:latest` (port 18789) | Gateway OpenAI-compatible, orchestration des skills, scheduling cron natif, outils web natifs |
+| `PostgreSQL 17` | Self-hosted Docker | Source unique de vérité, ecrite par Next.js via Prisma |
 
-### 6.3 Les 7 sous-agents OpenClaw
+### 6.3 Les 8 agents (SKILL.md)
 
-La V2.0 du PRD ne listait que 5 sous-agents. La V2.1 en ajoute 2 que la lecture du parcours utilisateur (section 5.3) rend obligatoires : **Deep Research d'onboarding** et **Détecteur de signaux faibles** (qui était mentionné en section 3.2 mais pas formalisé comme agent à part).
+Chaque agent est un fichier `SKILL.md` (markdown + YAML frontmatter) dans `apps/agent/workspace/skills/`. OpenClaw les découvre automatiquement au démarrage.
 
-| # | Agent | Quand | Input | Output | Modèle |
-|---|---|---|---|---|---|
-| 1 | **Deep Research** | À l'onboarding (1 fois par CompanyProfile, 1 fois par Competitor ajouté) | Nom + URL d'une entité | Profil enrichi : secteur, taille, ICP, mots-clés, concurrents potentiels | `claude-opus-4-7` (max thinking) |
-| 2 | **Collecteur** | Cycle quotidien, étape 1 | `Competitor` + `SurveillanceAxis[]` actifs | Liste de `Source` brutes avec URL, titre, contenu, date publication | `claude-haiku-4-5` (rapide, peu coûteux) + Tavily/Playwright |
-| 3 | **Évaluateur CRAAP** | Cycle quotidien, étape 2 | `Source[]` brutes | `Source[]` avec `SourceCRAAP` (5 scores + global + justification + flag rejetée) | `claude-haiku-4-5` (batch parallèle) |
-| 4 | **Analyste SWOT** | Cycle quotidien, étape 3a (parallèle) | `Source[]` validées par concurrent | `SWOTSnapshot` (4 listes) | `claude-opus-4-7` |
-| 5 | **Analyste PESTEL** | Cycle hebdo (lundi 06:00), étape 3b | `Source[]` validées + secteur | `PESTELSnapshot` (6 listes) | `claude-opus-4-7` |
-| 6 | **Détecteur signaux faibles** | Cycle quotidien, étape 4 (déclenché 1 fois sur 7 jours OU à chaque cycle si fenêtre 30j non encore stable) | `Source[]` des 30 derniers jours, tous concurrents confondus | `WeakSignal[]` avec intensité, horizon, sources support | `claude-opus-4-7` (long context) |
-| 7 | **Rédacteur** | Cycle quotidien, étape 5 | Tous les outputs précédents du cycle | `Movement[]` (alertes utilisateur structurées) + texte digest email | `claude-opus-4-7` |
+| # | Agent | Declencheur | Role |
+|---|---|---|---|
+| 1 | **orchestrateur** | Next.js (cron ou bouton) | Coordonne le pipeline de veille, ne fait aucune tache propre, délègue via `sessions_spawn` |
+| 2 | **deep-research** | Next.js (onboarding, une seule fois) | Recherche le profil de l'entreprise utilisateur, POST /api/internal/profil |
+| 3 | **collecteur** | Via orchestrateur | `web_search` DuckDuckGo + `web_fetch` sur les concurrents, POST /api/internal/sources |
+| 4 | **evaluateur** | Via orchestrateur | Scoring CRAAP de chaque source, POST /api/internal/sources (mise à jour) |
+| 5 | **analyste-swot** | Via orchestrateur | SWOT avec profil utilisateur + sources évaluées, POST /api/internal/swot |
+| 6 | **analyste-pestel** | Via orchestrateur | PESTEL sectoriel, POST /api/internal/pestel |
+| 7 | **detecteur-signaux-faibles** | Via orchestrateur | Signaux faibles (intensité, horizon), POST /api/internal/signaux |
+| 8 | **redacteur** | Via orchestrateur | Synthèse narrative finale, POST /api/internal/rapport/termine |
 
 ### 6.4 Pipeline du cycle quotidien
 
 ```
-06:00 ─ Scheduler émet job cycle.daily{userId, cycleDate}
+06:00 ─ Cron OpenClaw déclenche l'orchestrateur
         │
-06:00 ─ Queue assigne le job à un worker libre
+06:00 ─ Next.js peut aussi déclencher via bouton :
+        │   POST http://openclaw:18789/v1/chat/completions
+        │   { model: "openclaw/default", messages: [{ role: "user",
+        │     content: "Lance la veille pour rapportId: X. Profil: {...}" }] }
+        │   → Retour immédiat 202, OpenClaw travaille en arrière-plan
         │
-06:00 ─ Orchestrateur charge le contexte (CompanyProfile, Competitor[], Axes[])
+06:00 ─ Orchestrateur reçoit le profil utilisateur dans le message
         │
-06:00 ─ ÉTAPE 1 : Collecte (sequential par concurrent, parallèle entre concurrents)
-        │   Pour chaque Competitor :
-        │     ├── Tavily search (axes activés ⇒ requêtes générées par Collecteur)
-        │     └── Playwright scrape ciblé (page presse, carrières, blog)
-        │   Persistence : Source[] en BD avec rawContent
+06:00 ─ ÉTAPE 1 : Collecte
+        │   sessions_spawn(collecteur, { profil, concurrents })
+        │   → web_search DuckDuckGo + web_fetch
+        │   → POST /api/internal/sources + POST /api/internal/rapport/progresse
+        │   → retourne sources[] à l'orchestrateur
         │
-06:15 ─ ÉTAPE 2 : Évaluation CRAAP (parallèle, batches de 10 sources)
-        │   Score chaque Source, marque rejetée si global < 5/10
-        │   Persistence : SourceCRAAP[]
+06:15 ─ ÉTAPE 2 : Évaluation CRAAP
+        │   sessions_spawn(evaluateur, { sources })
+        │   → Score CRAAP, marque rejetée si global < 5/10
+        │   → POST /api/internal/sources + POST /api/internal/rapport/progresse
+        │   → retourne sourcesEvaluees[] à l'orchestrateur
         │
-06:25 ─ ÉTAPE 3 : Analyses (parallèle)
-        │   ├── ÉTAPE 3a : SWOT par concurrent (1 appel par Competitor)
-        │   ├── ÉTAPE 3b : PESTEL sectoriel (lundi seulement, sinon skip)
-        │   └── ÉTAPE 3c : Signaux faibles (window 30j, tous concurrents)
-        │   Persistence : SWOTSnapshot[], PESTELSnapshot?, WeakSignal[]
+06:25 ─ ÉTAPE 3 : Analyses
+        │   sessions_spawn(analyste-swot, { sourcesEvaluees, profil })
+        │   → POST /api/internal/swot + POST /api/internal/rapport/progresse
+        │   sessions_spawn(analyste-pestel, { sourcesEvaluees })
+        │   → POST /api/internal/pestel
+        │   sessions_spawn(detecteur-signaux-faibles, { sourcesEvaluees })
+        │   → POST /api/internal/signaux
         │
 06:45 ─ ÉTAPE 4 : Rédaction
-        │   Rédacteur transforme les snapshots en Movement[] dédupliqués
-        │   contre les 7 derniers jours (similarité embedding ≥ 0.85 ⇒ rejeté)
-        │   Persistence : Movement[]
+        │   sessions_spawn(redacteur, { swot, pestel, signaux, sources })
+        │   → POST /api/internal/rapport/termine { rapportId, synthese }
         │
-06:55 ─ ÉTAPE 5 : Diffusion
-        │   ├── Webhook → apps/web : "cycle.completed"
-        │   ├── Apps/web met à jour le dashboard temps réel
-        │   └── Si setting.digestFrequency=daily : enqueue job email.digest
-        │
-07:00 ─ Queue worker email.digest
-        │   ├── Rédacteur regénère le résumé digest (court, scannable)
-        │   ├── Resend envoie l'email
-        │   └── EmailDigest persisté avec messageId pour bounce tracking
+        └── En cas d'erreur à toute étape :
+            POST /api/internal/rapport/echec { rapportId, erreur }
 ```
 
 ### 6.5 Communications inter-composants
 
-**Web → Agent** : HTTP REST signé HMAC SHA-256. Le client web POST sur `https://agent.radar.example/run` avec header `X-Radar-Signature: t=<timestamp>,v1=<hmac>`. L'agent vérifie, accepte (202) et traite en async via la queue.
+**Next.js → OpenClaw** : HTTP POST sur `http://openclaw:18789/v1/chat/completions` (API OpenAI-compatible). Réseau interne Docker. Retour immédiat 202, traitement asynchrone.
 
-**Agent → Web** : Webhook signé symétriquement. L'agent POST sur `https://radar.example/api/webhooks/agent` avec le même schéma de signature. Le web vérifie, accuse réception (204) et met à jour ses caches.
+**OpenClaw → Next.js** : Chaque sous-agent POST directement sur les routes internes `http://web:3000/api/internal/*`. Réseau interne Docker. Pas de HMAC, pas de secret (réseau privé).
 
-**Agent ↔ DB** : Direct via Prisma. Les deux services partagent le même schéma. Pas de service tiers `@radar/database` en lecture/écriture, juste un client typé.
+**Next.js ↔ PostgreSQL** : Via Prisma exclusivement. OpenClaw n'a pas accès direct à la base.
 
-**Agent ↔ Anthropic** : SDK officiel `@anthropic-ai/sdk`. Streaming désactivé en V1 (résultats parsés en JSON strict). Cache prompt activé sur le `system` prompt commun (économie ~40% sur les sous-agents qui partagent un préambule).
+**OpenClaw ↔ Anthropic** : API Anthropic via `ANTHROPIC_API_KEY`. Géré nativement par OpenClaw.
 
-**Agent ↔ Tavily/Playwright** : adapter dédié. Tavily en priorité (API rapide, structuré), Playwright en fallback ciblé sur 3 pages canoniques (`/about`, `/careers`, `/news`).
+**OpenClaw ↔ Web (recherche)** : Outil natif `web_search` (DuckDuckGo, gratuit, sans clé API) + `web_fetch` pour scraping de pages.
 
 ### 6.6 Gestion du contexte LLM et budget tokens
 
-| Agent | Contexte input typique | Output typique | Budget max par appel |
-|---|---|---|---|
-| Deep Research | 4 KB (URL + nom) | 8 KB (profil enrichi) | 32 KB |
-| Collecteur | 2 KB (axes activés) | 8 KB (10-20 requêtes) | 16 KB |
-| Évaluateur CRAAP | 8 KB (1 source) | 1 KB (scores) | 12 KB |
-| Analyste SWOT | 40 KB (sources d'un concurrent) | 4 KB (matrice) | 64 KB |
-| Analyste PESTEL | 80 KB (sources d'un secteur) | 6 KB (matrice) | 100 KB |
-| Détecteur signaux faibles | 200 KB (sources 30j) | 8 KB (signaux) | 256 KB |
-| Rédacteur | 60 KB (snapshots) | 16 KB (movements + digest) | 96 KB |
+| Agent | Contexte input typique | Output typique |
+|---|---|---|
+| Deep Research | profil partiel + URL | profil enrichi 8 KB |
+| Collecteur | sujet + concurrents | sources[] 8-15 KB |
+| Évaluateur CRAAP | 1 source | scores CRAAP 1 KB |
+| Analyste SWOT | sources évaluées + profil | matrice SWOT 4 KB |
+| Analyste PESTEL | sources évaluées + secteur | matrice PESTEL 6 KB |
+| Détecteur signaux faibles | sources 30j | signaux[] 8 KB |
+| Rédacteur | tous les outputs | synthèse 16 KB |
 
-L'orchestrateur impose un **garde-fou strict** : si un input dépasse 80% du budget max, il déclenche une stratégie de réduction (résumé en cascade par Haiku, ou chunking + map-reduce). Les violations sont loggées et alertent.
+Claude Opus 4.7 dispose d'un contexte 200K tokens. Le pipeline séquentiel garantit que l'orchestrateur ne cumule que les résultats de l'étape courante, pas la totalité.
 
-### 6.7 Fiabilité : retry, timeout, idempotence
+### 6.7 Fiabilité
 
-- **Timeout par sous-agent** : 5 minutes pour les agents LLM standards, 15 minutes pour le Détecteur de signaux faibles (long context).
-- **Timeout par cycle complet** : 60 minutes pour 5 concurrents. Au-delà, le job est marqué `failed`, un `Movement` "Cycle incomplet" est créé pour transparence utilisateur.
-- **Retry** : exponentiel `pg-boss` avec base 30s, max 3 tentatives. Le 4e échec déplace en dead-letter queue avec alerte Slack.
-- **Idempotence** : chaque job a une clé `cycleId = userId:date:UTC`. Deux émissions du même cycleId sont collapsées (singleton job).
-- **Atomicité** : chaque sous-agent qui persiste fait sa propre transaction. Pas de transaction globale au cycle, sinon un échec d'agent annulerait tout. À la place, un `VeilleCycle.status` agrège l'état (`running`, `partial_success`, `success`, `failed`).
-- **Reprise** : si un cycle échoue à l'étape N, un job `cycle.resume{cycleId, fromStep: N}` peut être enqueué manuellement par l'admin (non exposé utilisateur en V1).
+- **Timeout par sous-agent** : géré nativement par OpenClaw (configurable dans SKILL.md).
+- **Erreur** : l'orchestrateur intercepte les erreurs de `sessions_spawn` et appelle `POST /api/internal/rapport/echec`.
+- **Idempotence** : chaque `rapportId` est unique (UUID généré par Next.js). Un double déclenchement sur le même `rapportId` est géré côté base (upsert).
+- **Sauvegarde progressive** : chaque sous-agent POST ses résultats dès qu'il finit. En cas de crash tardif, les étapes précédentes sont déjà persistées.
 
 ### 6.8 Observabilité
 
-| Aspect | Outil V1 | Outil V2 cible |
-|---|---|---|
-| Logs structurés | `@radar/shared` logger (JSON sur stdout, niveau via `LOG_LEVEL`) | Centralisation Loki + Grafana |
-| Métriques applicatives | Compteurs simples loggés (cycles/jour, durées, coûts tokens) | Prometheus + Grafana dashboards |
-| Tracing distribué | Aucun | OpenTelemetry, exporté vers Tempo |
-| Erreurs | Logs niveau `error` + capture exception via try/catch | Sentry |
-| Alerting | Email manuel sur dead-letter queue | PagerDuty ou Slack incident |
-| Coûts LLM | Usage Anthropic loggé par `AgentRun` (`tokensIn`, `tokensOut`, `costUsd`) | Dashboard PostHog ou interne |
-
-Chaque sous-agent émet un `AgentRun` en BD avec `agentName`, `cycleId`, `startedAt`, `endedAt`, `status`, `tokensIn`, `tokensOut`, `costUsd`, `error?`. Cela permet une comptabilité fine des coûts et des performances par agent dès le jour 1, sans dépendance à un APM externe.
+| Aspect | Outil V1 |
+|---|---|
+| Logs structurés | `@radar/shared` logger (Next.js) + logs natifs OpenClaw |
+| Progression temps réel | `POST /api/internal/rapport/progresse` après chaque étape |
+| Erreurs | `POST /api/internal/rapport/echec` + logs |
 
 ### 6.9 Topologie de déploiement
 
-**Environnement développement local** : 3 process sur la machine du dev (Next.js dev, agent dev, Postgres Docker). Pas de Caddy, pas de queue séparée, `pg-boss` natif dans Postgres.
+**Développement local** : Docker Compose avec 3 services (postgres + openclaw + web). `apps/agent/workspace/` monté comme volume dans le container OpenClaw.
 
-**Environnement production V1 (self-hosted)** : 1 VPS (Hetzner CPX21 ou équivalent, 3 vCPU 4 GB RAM, ~15 €/mois) avec :
-- Caddy en reverse proxy SSL (Let's Encrypt auto)  *(à réintroduire si besoin de SSL public, sinon laissez Cloudflare devant le VPS)*
-- 1 container `radar-web` (Next.js prod build)
-- 1 container `radar-agent` (Node prod build)
-- 1 container `radar-postgres` (Postgres 17 + volume persistant + backup quotidien `pg_dump` vers S3-compatible)
-- Les 3 containers sur le même réseau Docker, communications internes via DNS Docker
+**Production V1 (self-hosted VPS)** : Même `docker-compose.yml`, 1 VPS Hetzner CX21 (~4 EUR/mois). Les 3 containers sur le même réseau Docker interne.
 
-**Environnement production V2 (cible managed)** : `apps/web` sur Vercel (Fluid Compute), `apps/agent` sur Fly.io ou Railway (toujours Fastify Node), Postgres sur Neon (branching, scale-to-zero), queue sur Upstash Redis ou conservation `pg-boss`.
+**Production V2** : `apps/web` sur Vercel, OpenClaw sur un VPS dédié, Postgres sur Neon.
 
-### 6.10 Pourquoi ce choix d'architecture (et pas autre chose)
+### 6.10 Pourquoi ce choix d'architecture
+
+| Décision | Alternative écartée | Raison |
+|---|---|---|
+| OpenClaw image officielle | Wrapper Fastify custom | Zero code à maintenir, scheduling/orchestration/sessions_spawn natifs, gain de temps pour la soutenance |
+| SKILL.md (markdown) | Modules TypeScript agents | Plus lisible pour jury M244, pas de compilation, modifiable sans redéploiement |
+| DuckDuckGo | Tavily | Gratuit, sans clé API, suffisant pour démarrer. Remplacable par Tavily si performances insuffisantes |
+| POST /api/internal/* | Webhooks HMAC | Réseau Docker interne = pas besoin de signature. Karamo utilise Prisma directement, pas de couche intermédiaire |
+| Pas de pg-boss | pg-boss | OpenClaw gère le cron et la persistance des sessions nativement. Ajouter pg-boss = complexité sans gain |
 
 | Décision | Alternative écartée | Raison |
 |---|---|---|

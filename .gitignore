@@ -44,3 +44,7 @@ infra/docker/**/data/
 # Misc
 *.pem
 .cache/
+
+#personal files
+Note_bachirou.md
+CLAUDE.md
