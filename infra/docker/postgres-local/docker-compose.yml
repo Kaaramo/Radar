@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: radar-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: radar
+      POSTGRES_PASSWORD: radar
+      POSTGRES_DB: radar
+    ports:
+      - "5432:5432"
+    volumes:
+      - radar_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radar -d radar"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: radar-openclaw
+    restart: unless-stopped
+    ports:
+      - "18789:18789"
+    volumes:
+      - ../../apps/agent/workspace:/home/node/.openclaw/workspace
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../../../
+      dockerfile: infra/docker/web/Dockerfile
+    container_name: radar-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://radar:radar@postgres:5432/radar?schema=public
+      OPENCLAW_URL: http://openclaw:18789
+      OPENCLAW_INTERNAL_SECRET: ${OPENCLAW_INTERNAL_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      openclaw:
+        condition: service_started
+
+volumes:
+  radar_pg_data:

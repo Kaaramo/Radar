@@ -44,7 +44,7 @@ Radar déploie un agent IA autonome (OpenClaw) qui prend en charge **les 5 étap
        ┌────────────────────────────┼────────────────────────────┐
        ▼                            ▼                            ▼
   Identification              Collecte                    Analyse & traitement
-  des besoins              (Playwright + LLM)            (CRAAP + SWOT + PESTEL)
+  des besoins              (web_search + web_fetch)      (CRAAP + SWOT + PESTEL)
    (Onboarding                                          + détection signaux faibles
    Deep Research)                                      + recoupement multi-sources
        │                                                          │
@@ -60,16 +60,18 @@ Radar déploie un agent IA autonome (OpenClaw) qui prend en charge **les 5 étap
                                                           faibles 30j glissants)
 ```
 
-### Le pipeline OpenClaw : 5 sous-agents spécialisés
+### Le pipeline OpenClaw : 8 agents spécialisés
 
 | Agent | Mission |
 |---|---|
-| **Collecteur** | Génère les requêtes diversifiées et explore les sites concurrents quotidiennement à 6h |
-| **Évaluateur CRAAP** | Note chaque source sur Currency, Relevance, Authority, Accuracy, Purpose. Rejette les sources faibles |
-| **Analyste SWOT** | Met à jour la matrice par concurrent à chaque cycle |
-| **Analyste PESTEL** | Synthétise les 6 dimensions sectorielles chaque lundi |
-| **Détecteur signaux faibles** | Croise les sources mineures et majeures sur fenêtre glissante de 30 jours |
-| **Rédacteur** | Produit la synthèse finale structurée selon le format académique du Chapitre 2 |
+| **Orchestrateur** | Coordonne le pipeline complet, délègue aux 7 sous-agents |
+| **Deep Research** | Recherche et enrichit le profil de l'entreprise utilisateur (one-time, onboarding) |
+| **Collecteur** | Recherche web + scraping des concurrents via DuckDuckGo + web_fetch |
+| **Évaluateur CRAAP** | Note chaque source (Currency, Relevance, Authority, Accuracy, Purpose) |
+| **Analyste SWOT** | Matrice SWOT avec profil utilisateur + données concurrents |
+| **Analyste PESTEL** | Synthèse des 6 dimensions sectorielles |
+| **Détecteur signaux faibles** | Croise les sources sur fenêtre glissante 30 jours |
+| **Rédacteur** | Produit la synthèse finale structurée |
 
 ---
 
@@ -77,7 +79,7 @@ Radar déploie un agent IA autonome (OpenClaw) qui prend en charge **les 5 étap
 
 ### L'Étudiant Stratégiste
 
-Master 2 ou cycle ingénieur, spécialisation stratégie, intelligence économique ou data. Cherche à démontrer la maîtrise des concepts M244 dans un projet livrable au jury, et à se constituer une pièce de portfolio défendable en entretien.
+Master 2 ou cycle ingénieur, spécialisation stratégie, intelligence économique ou data. Cherche à démontrer la maîtrise des concepts M244 dans un projet livrable au jury.
 
 ### Le Dirigeant PME
 
@@ -85,52 +87,7 @@ Fondateur, DG ou directeur stratégie d'une PME 10 à 100 salariés. Veut être 
 
 ### Le Consultant indépendant
 
-5 à 15 ans d'expérience, 3 à 8 missions actives en parallèle. Veut accélérer la phase de recherche concurrentielle (20 à 30% du temps non facturable) et maintenir une veille continue sur ses comptes en retainer.
-
-### Anti-personas (V1)
-
-Radar n'est volontairement **pas** conçu pour les acheteurs grands comptes (ISO, SSO entreprise), les agences SEO/SEM (Similarweb couvre), les VC en scouting (Crunchbase couvre), la veille brevet (Espacenet couvre), ni la communication corporate (Mention couvre).
-
----
-
-## Méthodologie M244 intégrée
-
-Radar n'est pas un projet d'ingénierie auquel on a ajouté du vocabulaire de veille a posteriori. La méthodologie du Pr. Younes Wadiai est **codée dans les prompts de l'agent**.
-
-| Concept M244 | Intégration dans Radar |
-|---|---|
-| Cycle de veille en 5 étapes (Ch. 1) | Pipeline OpenClaw aligné phase par phase |
-| Grille CRAAP (Ch. 3) | Score calculé programmatiquement à chaque source |
-| Recoupement multi-sources (Ch. 3) | Aucune alerte sans 2 sources indépendantes |
-| Analyse SWOT (Ch. 2) | Grille générée par concurrent, MAJ quotidienne |
-| Analyse PESTEL (Ch. 2) | 6 dimensions, MAJ hebdomadaire sectorielle |
-| Signaux faibles (Ch. 1) | Détection algorithmique, fenêtre 30 jours |
-| Structure du rapport (Ch. 2) | Synthèse, Méthodologie, Analyse, Résultats, Recommandations |
-| Diffusion structurée (Ch. 3) | Dashboard, digest email, export PDF |
-
----
-
-## Différenciation
-
-| Aspect | Outils existants (Similarweb, SEMrush, Crayon) | **Radar** |
-|---|---|---|
-| Cœur métier | Trafic et SEO | **Mouvements stratégiques tous axes** |
-| Méthodologie | Aucune | **Cycle M244, grille CRAAP par source** |
-| Analyse | Tableaux de métriques | **SWOT + PESTEL générés et MAJ auto** |
-| Signaux faibles | Non détectés | **Détection algorithmique multi-sources** |
-| Tarif | À partir de 100 USD / mois / utilisateur | **Gratuit (V1 académique)** |
-| Cible | Grands comptes, agences SEO | **PME, étudiants, consultants** |
-
----
-
-## North Star Metric
-
-> **Nombre de mouvements concurrents détectés et validés par utilisateur actif et par semaine.**
-
-| Cible | Valeur |
-|---|---|
-| V1 (académique) | 10 mouvements validés / utilisateur / semaine |
-| V2 (commerciale) | 20 mouvements validés / utilisateur / semaine, score CRAAP moyen ≥ 7/10 |
+5 à 15 ans d'expérience, 3 à 8 missions actives en parallèle. Veut accélérer la phase de recherche concurrentielle et maintenir une veille continue.
 
 ---
 
@@ -138,10 +95,24 @@ Radar n'est pas un projet d'ingénierie auquel on a ajouté du vocabulaire de ve
 
 ```
 radar/
-├── frontend/                   [Karamo] Next.js (App Router), UI, emails, dashboard
-├── backend/                    [Bachirou] OpenClaw, sous-agents, acquisition, orchestration
-├── database/                   [Karamo] schéma Prisma, contrats partagés, Postgres local
-└── docs/                       PRD, note de cadrage, supports académiques
+├── apps/
+│   ├── web/                    [Karamo] Next.js 16 (dashboard, auth, onboarding, API interne)
+│   └── agent/                  [Bachirou] Skills OpenClaw (8 SKILL.md)
+│       └── workspace/
+│           └── skills/         8 agents en markdown (orchestrateur, deep-research, etc.)
+│
+├── packages/
+│   ├── database/               schema Prisma + client Postgres
+│   ├── api-contracts/          schemas Zod partagés
+│   ├── ui/                     composants partagés (Intel Dark theme)
+│   └── shared/                 logger, errors, dates utils
+│
+├── infra/
+│   └── docker/
+│       └── postgres-local/     docker-compose (postgres + openclaw + web)
+│
+└── docs/
+    └── PRD-RADAR.md            Product Requirements Document complet
 ```
 
 Le repo est volontairement vierge à ce stade : structure de dossiers posée, scaffolding non engagé. Les choix de stack sont arrêtés dans la note de cadrage et seront matérialisés au démarrage du sprint 1.
@@ -152,26 +123,56 @@ Le repo est volontairement vierge à ce stade : structure de dossiers posée, sc
 
 | Couche | Choix |
 |---|---|
-| Frontend | Next.js (App Router), TypeScript strict, Tailwind, Shadcn UI, Motion.dev |
-| State et formulaires | Zustand, TanStack Query, Nuqs, React Hook Form + Zod |
-| Auth | Better Auth (email/password + Google OAuth) |
-| Visualisation | Recharts |
-| Emails | React Email + Resend |
-| Backend | Node.js + TypeScript, OpenClaw, Anthropic Claude (Opus / Haiku) |
-| Acquisition | Playwright + extraction LLM |
-| Orchestration | Cron (quotidien 6h, hebdo PESTEL), file de tâches |
-| Cache et rate limit | Upstash Redis |
-| Database | PostgreSQL 17 (Neon serverless en V2), Prisma ORM |
-| Contrats inter-services | Zod, partagés entre frontend et backend |
-| Infra V1 | Docker + Caddy reverse proxy (VPS) |
-| Déploiement V2 | Frontend sur Vercel, backend conteneurisé, base sur Neon |
+| Monorepo | pnpm 10 workspaces + Turborepo 2 |
+| Web | Next.js 16 (App Router) + Tailwind 4 |
+| Agent | OpenClaw (`ghcr.io/openclaw/openclaw:latest`, port 18789) |
+| LLM | Claude Opus 4.7 via OpenClaw |
+| Recherche web | DuckDuckGo (natif OpenClaw, sans clé API) |
+| Database | PostgreSQL 17 + Prisma 6 |
+| Contracts | Zod 3 |
+| UI | Tokens Intel Dark + composants typés |
+| Infra | Docker Compose (3 services : postgres + openclaw + web) |
+
+---
+
+## Démarrage local
+
+**Prérequis :** Docker Desktop, pnpm 10+.
+
+```bash
+# 1. Variables d'environnement
+cp .env.example .env
+# Remplir ANTHROPIC_API_KEY dans .env
+
+# 2. Lancer les 3 services
+docker compose -f infra/docker/postgres-local/docker-compose.yml up -d
+
+# 3. Migrations base de données
+pnpm db:migrate
+
+# 4. Développement web uniquement (hors Docker)
+pnpm install
+pnpm dev
+```
+
+Web : http://localhost:3000 · OpenClaw : http://localhost:18789
+
+### Scripts disponibles
+
+| Commande | Description |
+|---|---|
+| `pnpm dev` | Lance le web en watch mode |
+| `pnpm build` | Build production |
+| `pnpm lint` | Lint tous les packages |
+| `pnpm typecheck` | Typecheck TypeScript |
+| `pnpm db:migrate` | Applique les migrations Prisma |
+| `pnpm db:seed` | Seed la base |
 
 ---
 
 ## Documentation
 
-- **[PRD RADAR](./docs/PRD-RADAR.md)** : contexte, vision, ancrage M244, personas, parcours utilisateur, architecture, données, API, UI/UX, règles métier, coûts, phasage, indicateurs de succès.
-- **[Note de cadrage v1](./Note_de_cadrage_RADAR_v1.pdf)** : arbitrage technique interne du binôme, répartition des responsabilités, décisions tranchées avant le sprint 1.
+- **[PRD complet](./docs/PRD-RADAR.md)** : contexte, vision, ancrage M244, personas, parcours utilisateur, architecture, données, API, spécifications fonctionnelles
 
 ---
 
@@ -179,8 +180,8 @@ Le repo est volontairement vierge à ce stade : structure de dossiers posée, sc
 
 | Auteur | Périmètre |
 |---|---|
-| **Karamo Sylla** | `frontend/` · `database/` · UX/UI · design system · templates email · export PDF |
-| **Bachirou Konaté** | `backend/` · agents IA · acquisition · orchestration · conteneurisation |
+| **Karamo Sylla** | `apps/web` · `packages/database` · `packages/ui` · design Intel Dark |
+| **Bachirou Konaté** | `apps/agent` (OpenClaw skills) · `infra/` · configuration Docker |
 
 **Encadrant :** Pr. Younes Wadiai
 **Cadre :** Module M244 (Veille Technologique), Cycle Ingénieur BDIA, ENSA Tétouan
