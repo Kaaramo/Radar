@@ -17,5 +17,37 @@ services:
       timeout: 5s
       retries: 5
 
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: radar-openclaw
+    restart: unless-stopped
+    ports:
+      - "18789:18789"
+    volumes:
+      - ../../apps/agent/workspace:/home/node/.openclaw/workspace
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../../../
+      dockerfile: infra/docker/web/Dockerfile
+    container_name: radar-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://radar:radar@postgres:5432/radar?schema=public
+      OPENCLAW_URL: http://openclaw:18789
+      OPENCLAW_INTERNAL_SECRET: ${OPENCLAW_INTERNAL_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      openclaw:
+        condition: service_started
+
 volumes:
   radar_pg_data:
