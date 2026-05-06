@@ -24,9 +24,11 @@ services:
     ports:
       - "18789:18789"
     volumes:
-      - ../../apps/agent/workspace:/home/node/.openclaw/workspace
+      - ../../../apps/agent/openclaw-data:/home/node/.openclaw
+      - ../../../apps/agent/workspace:/home/node/.openclaw/workspace
     environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENCLAW_INTERNAL_SECRET: ${OPENCLAW_INTERNAL_SECRET}
     depends_on:
       postgres:
         condition: service_healthy

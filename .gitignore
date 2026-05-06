@@ -45,6 +45,56 @@ infra/docker/**/data/
 *.pem
 .cache/
 
-#personal files
+# Personal files
 Note_bachirou.md
 CLAUDE.md
+Log_text.md
+
+# ─── OpenClaw : fichiers runtime (openclaw-data/) ───────────────────────────
+# Sauvegardes automatiques de config
+apps/agent/openclaw-data/openclaw.json.bak
+apps/agent/openclaw-data/openclaw.json.bak.*
+apps/agent/openclaw-data/openclaw.json.last-good
+
+# Logs et état runtime
+apps/agent/openclaw-data/logs/
+apps/agent/openclaw-data/cron/
+apps/agent/openclaw-data/canvas/
+apps/agent/openclaw-data/devices/
+apps/agent/openclaw-data/flows/
+apps/agent/openclaw-data/identity/
+apps/agent/openclaw-data/memory/
+apps/agent/openclaw-data/plugin-skills/
+apps/agent/openclaw-data/subagents/
+apps/agent/openclaw-data/tasks/
+apps/agent/openclaw-data/exec-approvals.json
+apps/agent/openclaw-data/update-check.json
+apps/agent/openclaw-data/auth-state.json
+
+# Sessions des agents (historique des conversations)
+apps/agent/openclaw-data/agents/main/sessions/
+
+# État d'authentification runtime (conserver auth-profiles.json)
+apps/agent/openclaw-data/agents/main/agent/auth-state.json
+
+# Resultats des tests (conserver la structure des dossiers)
+apps/agent/openclaw-data/tests/**/*.json
+
+# ─── OpenClaw : workspace (seul skills/ nous appartient) ────────────────────
+# Dépôt git interne d'OpenClaw
+apps/agent/workspace/.git/
+
+# Fichiers de contexte générés automatiquement
+apps/agent/workspace/.openclaw/
+apps/agent/workspace/SOUL.md
+apps/agent/workspace/IDENTITY.md
+apps/agent/workspace/USER.md
+apps/agent/workspace/AGENTS.md
+apps/agent/workspace/TOOLS.md
+apps/agent/workspace/HEARTBEAT.md
+apps/agent/workspace/BOOTSTRAP.md
+apps/agent/workspace/BOOT.md
+
+# Fichiers temporaires créés par les agents pendant les tests
+apps/agent/workspace/*.json
+apps/agent/workspace/*.jsonl

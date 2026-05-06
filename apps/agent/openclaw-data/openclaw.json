@@ -1,0 +1,62 @@
+{
+  "agents": {
+    "defaults": {
+      "model": "openai/gpt-4o-mini"
+    }
+  },
+  "tools": {
+    "profile": "coding",
+    "web": {
+      "search": {
+        "provider": "duckduckgo"
+      }
+    }
+  },
+  "cron": {
+    "enabled": true,
+    "maxConcurrentRuns": 1,
+    "retry": {
+      "maxAttempts": 3,
+      "backoffMs": [
+        60000,
+        120000,
+        300000
+      ],
+      "retryOn": [
+        "rate_limit",
+        "overloaded",
+        "network",
+        "server_error"
+      ]
+    }
+  },
+  "plugins": {
+    "entries": {
+      "anthropic": {
+        "enabled": true
+      },
+      "duckduckgo": {
+        "enabled": true
+      },
+      "openai": {
+        "enabled": true
+      }
+    }
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.5.4",
+    "lastTouchedAt": "2026-05-05T17:39:38.722Z"
+  },
+  "gateway": {
+    "auth": {
+      "mode": "token",
+      "token": "6f2b5a546a7f294124087acfda77aa9fa36d66661571ffb7"
+    },
+    "controlUi": {
+      "allowedOrigins": [
+        "http://localhost:18789",
+        "http://127.0.0.1:18789"
+      ]
+    }
+  }
+}
