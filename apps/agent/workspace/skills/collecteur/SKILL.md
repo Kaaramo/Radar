@@ -14,6 +14,14 @@ Le message contient :
 - `premierRapport` : booléen — `true` si c'est le premier rapport de cet utilisateur, `false` sinon
 - `profilUtilisateur` : JSON complet du profil entreprise (nomEntreprise, secteur, produits, marches, concurrents_connus)
 
+## Période de recherche
+
+**Ce paramètre est critique :**
+- Si `premierRapport: true` → recherche sur les **30 derniers jours** (freshness: "month" dans web_search)
+- Si `premierRapport: false` → recherche sur les **3 derniers jours** uniquement
+
+Pour les recherches sur 3 jours, calcule la date d'il y a 3 jours au format YYYY-MM-DD et utilise le paramètre `date_after` dans web_search.
+
 ## Détection du provider web_search actif
 
 **Après le premier appel web_search, détecte automatiquement le provider actif :**
@@ -27,14 +35,6 @@ Le message contient :
   - Attends les résultats de chaque lot avant de lancer le suivant
   - Pour chaque URL pertinente, utilise web_fetch pour lire le contenu complet
 
-## Période de recherche
-
-**Ce paramètre est critique :**
-- Si `premierRapport: true` → recherche sur les **30 derniers jours** (freshness: "month" dans web_search)
-- Si `premierRapport: false` → recherche sur les **3 derniers jours** uniquement
-
-Pour les recherches sur 3 jours, calcule la date d'il y a 3 jours au format YYYY-MM-DD et utilise le paramètre `date_after` dans web_search.
-
 ## Configuration API interne
 
 Pour persister les sources collectées, utilise exec avec node fetch :
@@ -46,9 +46,11 @@ node -e "fetch('http://web:3000/api/internal/sources',{method:'POST',headers:{'C
 
 ### Phase 1 — Identification des concurrents cibles
 
-Utilise le champ `concurrents_connus` du profilUtilisateur comme liste de départ. Si la liste est vide ou incomplète, complète-la avec une recherche :
-- `concurrents "[nomEntreprise]" [secteur] 2025 2026`
-- `"[secteur]" entreprises comparables`
+Le champ `concurrents_connus` du profilUtilisateur est un tableau d'objets `{ nom, siteWeb }`. Utilise le tableau complet : le `nom` servira pour les requêtes web_search, le `siteWeb` (quand présent) est une source primaire à exploiter directement en Phase 2 via web_fetch ou web_search ciblé sur le domaine.
+
+Si la liste contient moins de 3 concurrents ou est absente, complète-la avec une recherche :
+- `concurrents "[nomEntreprise]" [secteur]`
+- `"[secteur]" entreprises leaders marché`
 
 Sélectionne les **5 concurrents les plus pertinents** sur lesquels concentrer la collecte.
 
@@ -57,7 +59,7 @@ Sélectionne les **5 concurrents les plus pertinents** sur lesquels concentrer l
 Pour **chaque concurrent** (maximum 5), lance ces recherches web_search en appliquant la période correcte :
 
 **Si premier rapport** (freshness: "month", count: 8) :
-1. `"[nom concurrent]" actualités news 2025 2026`
+1. `"[nom concurrent]" actualités news`
 2. `"[nom concurrent]" nouveau produit lancement annonce`
 3. `"[nom concurrent]" partenariat acquisition levée fonds croissance`
 
@@ -110,6 +112,9 @@ Parcours chaque source du tableau et applique cette règle sans exception :
 
 **Étape 4.3 — Vérification du minimum**
 Après filtrage, si le total restant est inférieur à 3 (cas extrême) : conserve les 3 sources ayant la `datePublication` la plus récente, même si hors délai, pour ne pas bloquer le pipeline.
+
+**Étape 4.4 — Contrôle de cohérence (obligatoire)**
+Avant de continuer, parcours une dernière fois le tableau final et vérifie que chaque source avec une `datePublication` connue respecte `datePublication >= date seuil`. Si tu trouves une violation, supprime-la immédiatement. Indique dans ton résumé final le nombre de sources supprimées et leurs dates.
 
 Si `premierRapport: true`, aucun filtrage — la période "30 derniers jours" est gérée par `freshness: "month"` dans web_search.
 
