@@ -60,13 +60,18 @@ Score chaque critère de **0 à 4** :
 - 6-10 : Source acceptable — utiliser avec précaution
 - 0-5 : Source faible — exclure de l'analyse principale
 
-## Processus d'évaluation
+## Processus d'évaluation — Traitement par lots
 
-Pour chaque source reçue :
-1. Lis le titre, l'URL, le contenu et les métadonnées
+**Traite les sources en lots de 5 pour éviter les timeouts.** Ne commence pas la source suivante avant d'avoir terminé le lot en cours.
+
+Pour chaque lot de 5 sources :
+1. Lis le titre, l'URL, le contenu et les métadonnées de chaque source
 2. Attribue un score à chacun des 5 critères avec une justification courte
 3. Calcule le score total
 4. Détermine le niveau (excellent/fiable/acceptable/faible)
+5. Compile les 5 sources scorées avant de passer au lot suivant
+
+Répète jusqu'à épuisement de toutes les sources. Agrège ensuite tous les lots en un seul tableau avant la persistance.
 
 ## Configuration API interne
 
@@ -120,9 +125,19 @@ Une fois toutes les sources évaluées, POST vers `/api/internal/sources` :
 
 ## Réponse finale
 
-Retourne :
-1. Le tableau JSON complet des sources évaluées
-2. Un résumé statistique : distribution des niveaux, score moyen, meilleures sources (top 5 par score)
+**OBLIGATOIRE — deux blocs dans cet ordre :**
+
+1. Un résumé statistique : distribution des niveaux (excellent/fiable/acceptable/faible), score moyen, top 5 sources par score CRAAP.
+
+2. Le tableau JSON complet des sources évaluées entre balises ```json``` — ce bloc est INDISPENSABLE car l'orchestrateur le transmet directement aux agents PESTEL, signaux et SWOT. Ne l'omets jamais.
+
+Exemple de structure attendue :
+```json
+[
+  { "titre": "...", "url": "...", "contenu": "...", "scoreCRAAP": { "currency": 3, "relevance": 4, "authority": 2, "accuracy": 3, "purpose": 3, "total": 15, "niveau": "fiable", ... } },
+  ...
+]
+```
 
 ## Règles
 

@@ -76,6 +76,7 @@ apps/agent/openclaw-data/agents/main/sessions/
 
 # État d'authentification runtime (conserver auth-profiles.json)
 apps/agent/openclaw-data/agents/main/agent/auth-state.json
+apps/agent/openclaw-data/agents/main/agent/models.json
 
 # Resultats des tests (conserver la structure des dossiers)
 apps/agent/openclaw-data/tests/**/*.json
@@ -98,3 +99,7 @@ apps/agent/workspace/BOOT.md
 # Fichiers temporaires créés par les agents pendant les tests
 apps/agent/workspace/*.json
 apps/agent/workspace/*.jsonl
+
+# Sorties générées par les agents (rapports, données SWOT, etc.)
+apps/agent/workspace/output/
+apps/agent/workspace/rapports/

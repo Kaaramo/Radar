@@ -43,7 +43,7 @@ sessions_spawn({
   "task": "ROLE: Tu es le collecteur de sources RADAR.\n\nrapportId: [rapportId]\npremierRapport: [true ou false]\n\nPROFIL UTILISATEUR:\n[profilUtilisateur en JSON]\n\nObjectif: Recherche et collecte les actualités des concurrents de cette entreprise. Applique les instructions de ton rôle collecteur.",
   "label": "collecteur-[rapportId]",
   "context": "isolated",
-  "runTimeoutSeconds": 480
+  "runTimeoutSeconds": 900
 })
 ```
 Attends l'announce de fin du collecteur. Son résultat contient la liste des sources JSON.
@@ -57,10 +57,10 @@ POST vers `/api/internal/rapport/progresse` :
 Lance un sous-agent évaluateur via sessions_spawn :
 ```
 sessions_spawn({
-  "task": "ROLE: Tu es l'évaluateur CRAAP RADAR.\n\nrapportId: [rapportId]\n\nSOURCES À ÉVALUER:\n[résultat JSON de l'étape collecte]\n\nObjectif: Applique le scoring CRAAP à chaque source. Applique les instructions de ton rôle évaluateur.",
+  "task": "ROLE: Tu es l'évaluateur CRAAP RADAR.\n\nrapportId: [rapportId]\n\nSOURCES À ÉVALUER:\n[Colle ici le tableau JSON complet retourné par le collecteur — le bloc entre ```json et ```]\n\nObjectif: Applique le scoring CRAAP à chaque source. Applique les instructions de ton rôle évaluateur.",
   "label": "evaluateur-[rapportId]",
   "context": "isolated",
-  "runTimeoutSeconds": 300
+  "runTimeoutSeconds": 900
 })
 ```
 Attends l'announce de fin de l'évaluateur.
@@ -77,7 +77,7 @@ sessions_spawn({
   "task": "ROLE: Tu es l'analyste PESTEL RADAR.\n\nrapportId: [rapportId]\n\nSECTEUR: [secteur du profilUtilisateur]\n\nSOURCES ÉVALUÉES:\n[résultat JSON de l'étape évaluation]\n\nObjectif: Produis l'analyse PESTEL du secteur. Applique les instructions de ton rôle analyste-pestel.",
   "label": "pestel-[rapportId]",
   "context": "isolated",
-  "runTimeoutSeconds": 300
+  "runTimeoutSeconds": 900
 })
 ```
 Attends l'announce.
@@ -94,7 +94,7 @@ sessions_spawn({
   "task": "ROLE: Tu es le détecteur de signaux faibles RADAR.\n\nrapportId: [rapportId]\n\nSOURCES ÉVALUÉES:\n[résultat JSON de l'étape évaluation]\n\nObjectif: Identifie les signaux faibles émergents. Applique les instructions de ton rôle detecteur-signaux-faibles.",
   "label": "signaux-[rapportId]",
   "context": "isolated",
-  "runTimeoutSeconds": 300
+  "runTimeoutSeconds": 900
 })
 ```
 Attends l'announce.
@@ -111,7 +111,7 @@ sessions_spawn({
   "task": "ROLE: Tu es l'analyste SWOT RADAR.\n\nrapportId: [rapportId]\n\nPROFIL UTILISATEUR:\n[profilUtilisateur en JSON]\n\nSOURCES ÉVALUÉES:\n[résultat JSON de l'étape évaluation]\n\nANALYSE PESTEL:\n[résultat JSON de l'étape pestel]\n\nSIGNAUX FAIBLES:\n[résultat JSON de l'étape signaux]\n\nObjectif: Produis la matrice SWOT en intégrant le contexte macro (PESTEL) et les tendances émergentes (signaux faibles). Applique les instructions de ton rôle analyste-swot.",
   "label": "swot-[rapportId]",
   "context": "isolated",
-  "runTimeoutSeconds": 300
+  "runTimeoutSeconds": 900
 })
 ```
 Attends l'announce.
@@ -128,7 +128,7 @@ sessions_spawn({
   "task": "ROLE: Tu es le rédacteur de rapports RADAR.\n\nrapportId: [rapportId]\n\nPROFIL UTILISATEUR:\n[profilUtilisateur en JSON]\n\nSWOT:\n[résultat swot]\n\nPESTEL:\n[résultat pestel]\n\nSIGNAUX FAIBLES:\n[résultat signaux]\n\nSOURCES:\n[résumé des top sources]\n\nObjectif: Rédige le rapport de synthèse final. Applique les instructions de ton rôle redacteur.",
   "label": "redacteur-[rapportId]",
   "context": "isolated",
-  "runTimeoutSeconds": 480
+  "runTimeoutSeconds": 900
 })
 ```
 Attends l'announce.
