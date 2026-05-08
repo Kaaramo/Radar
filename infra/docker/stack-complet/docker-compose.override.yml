@@ -1,0 +1,7 @@
+services:
+  web:
+    build:
+      context: ../mock-api
+      dockerfile: Dockerfile
+    volumes:
+      - ../../../apps/agent/openclaw-data/tests:/app/tests

@@ -17,7 +17,7 @@ Browser → apps/web (Next.js) → apps/agent (Fastify) → Anthropic API
 
 APRES
 ─────
-Browser → apps/web (Next.js) → OpenClaw Gateway → Anthropic API
+Browser → apps/web (Next.js) → OpenClaw Gateway → DeepSeek API
                 ↑                     ↓               ↓
                 └──── POST /api/internal/* ←── Skills OpenClaw
                               ↓
@@ -165,3 +165,8 @@ Le profil est passe directement dans le message pour que l'orchestrateur le tran
 - Les emails Resend (F5)
 - L'export PDF (F6)
 - Le schema Prisma - a completer avec le modele ProfilUtilisateur
+
+## Additional: 
+
+- Ajoutr un Cron dans Next.js (Karamo) : Next.js a un cron node-cron qui a 6h00 interroge la DB, recupere les profils de tous les utilisateurs actifs, et pour chacun envoie un message a OpenClaw. Phase 5.2 = juste activer le sous-systeme cron dans openclaw.json.
+- Position exacte du docker de l'app web: infra/docker/web/Dockerfile

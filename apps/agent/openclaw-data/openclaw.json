@@ -1,0 +1,76 @@
+{
+  "agents": {
+    "defaults": {
+      "model": "deepseek/deepseek-v4-pro",
+      "thinkingDefault": "medium",
+      "timeoutSeconds": 900,
+      "models": {
+        "deepseek/deepseek-v4-pro": { "alias": "deepseek-v4-pro" },
+        "deepseek/deepseek-v4-flash": { "alias": "deepseek-v4-flash" },
+        "openai/gpt-4o": { "alias": "gpt-4o" },
+        "openai/gpt-4o-mini": { "alias": "gpt-4o-mini" }
+      }
+    }
+  },
+  "tools": {
+    "profile": "coding",
+    "web": {
+      "search": {
+        "provider": "tavily"
+      }
+    }
+  },
+  "cron": {
+    "enabled": true,
+    "maxConcurrentRuns": 1,
+    "retry": {
+      "maxAttempts": 3,
+      "backoffMs": [
+        60000,
+        120000,
+        300000
+      ],
+      "retryOn": [
+        "rate_limit",
+        "overloaded",
+        "network",
+        "server_error"
+      ]
+    }
+  },
+  "plugins": {
+    "entries": {
+      "deepseek": {
+        "enabled": true
+      },
+      "anthropic": {
+        "enabled": true
+      },
+      "tavily": {
+        "enabled": true
+      },
+      "duckduckgo": {
+        "enabled": true
+      },
+      "openai": {
+        "enabled": true
+      }
+    }
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.5.4",
+    "lastTouchedAt": "2026-05-07T00:00:00.000Z"
+  },
+  "gateway": {
+    "auth": {
+      "mode": "token",
+      "token": "6f2b5a546a7f294124087acfda77aa9fa36d66661571ffb7"
+    },
+    "controlUi": {
+      "allowedOrigins": [
+        "http://localhost:18789",
+        "http://127.0.0.1:18789"
+      ]
+    }
+  }
+}
