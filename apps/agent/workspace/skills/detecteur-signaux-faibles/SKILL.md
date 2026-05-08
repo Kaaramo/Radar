@@ -13,7 +13,7 @@ Le message contient :
 - `rapportId` : identifiant du rapport en cours
 - Sources évaluées (tableau JSON avec scores CRAAP)
 
-**Utilise toutes les sources**, y compris celles avec un score CRAAP faible (entre 3 et 5) : les signaux faibles apparaissent souvent dans des sources moins mainstream.
+**Utilise toutes les sources avec scoreCRAAP.currency ≥ 2** (moins de 90 jours), y compris celles avec un score total faible (entre 3 et 5) : les signaux faibles apparaissent souvent dans des sources moins mainstream. Ignore les sources avec currency 0 ou 1 — trop anciennes pour identifier un signal émergent.
 
 ## Qu'est-ce qu'un signal faible ?
 

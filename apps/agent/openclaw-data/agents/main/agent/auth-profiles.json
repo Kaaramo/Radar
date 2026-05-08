@@ -1,13 +1,13 @@
 {
   "version": 1,
   "profiles": {
-    "openai:default": {
-      "provider": "openai",
+    "deepseek:default": {
+      "provider": "deepseek",
       "mode": "api_key",
       "keyRef": {
         "source": "env",
         "provider": "default",
-        "id": "OPENAI_API_KEY"
+        "id": "DEEPSEEK_API_KEY"
       },
       "type": "api_key"
     }

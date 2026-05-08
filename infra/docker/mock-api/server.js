@@ -16,7 +16,7 @@ const resolveDir = (url, parsed) => {
   if (url === '/api/internal/rapport/echec') return 'orchestrateur';
   if (url === '/api/internal/sources') {
     const sources = parsed?.sources ?? [];
-    const isEvaluateur = sources.length > 0 && sources[0]?.scoreTotal !== undefined;
+    const isEvaluateur = parsed?.evaluation === 'complete' || (sources.length > 0 && sources[0]?.scoreCRAAP !== undefined);
     return isEvaluateur ? 'evaluateur' : 'collecteur';
   }
   return null;

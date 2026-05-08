@@ -1,14 +1,22 @@
 {
   "agents": {
     "defaults": {
-      "model": "openai/gpt-4o-mini"
+      "model": "deepseek/deepseek-v4-pro",
+      "thinkingDefault": "medium",
+      "timeoutSeconds": 900,
+      "models": {
+        "deepseek/deepseek-v4-pro": { "alias": "deepseek-v4-pro" },
+        "deepseek/deepseek-v4-flash": { "alias": "deepseek-v4-flash" },
+        "openai/gpt-4o": { "alias": "gpt-4o" },
+        "openai/gpt-4o-mini": { "alias": "gpt-4o-mini" }
+      }
     }
   },
   "tools": {
     "profile": "coding",
     "web": {
       "search": {
-        "provider": "duckduckgo"
+        "provider": "tavily"
       }
     }
   },
@@ -32,7 +40,13 @@
   },
   "plugins": {
     "entries": {
+      "deepseek": {
+        "enabled": true
+      },
       "anthropic": {
+        "enabled": true
+      },
+      "tavily": {
         "enabled": true
       },
       "duckduckgo": {
@@ -45,7 +59,7 @@
   },
   "meta": {
     "lastTouchedVersion": "2026.5.4",
-    "lastTouchedAt": "2026-05-05T17:39:38.722Z"
+    "lastTouchedAt": "2026-05-07T00:00:00.000Z"
   },
   "gateway": {
     "auth": {

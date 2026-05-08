@@ -12,7 +12,7 @@ Tu es l'agent d'analyse PESTEL RADAR. Tu synthétises les forces macro-environne
 Le message contient :
 - `rapportId` : identifiant du rapport en cours
 - `secteur` : secteur d'activité de l'entreprise utilisateur
-- Sources évaluées (tableau JSON avec scores CRAAP) — **n'utilise que les sources avec score total ≥ 6**
+- Sources évaluées (tableau JSON avec scores CRAAP) — **n'utilise que les sources avec score total ≥ 6 ET scoreCRAAP.currency ≥ 2** (exclure toute source avec currency 0 ou 1, soit plus de 90 jours — ces sources sont trop anciennes pour un rapport de veille)
 
 ## Les 6 dimensions PESTEL
 
