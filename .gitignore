@@ -41,6 +41,10 @@ packages/database/prisma/*.db-journal
 # Docker
 infra/docker/**/data/
 
+# OpenClaw runtime output (logs, health, sessions) — pas de versionnement
+apps/agent/openclaw-data/logs/
+apps/agent/openclaw-data/sessions/
+
 # Misc
 *.pem
 .cache/
