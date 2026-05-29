@@ -103,3 +103,16 @@ apps/agent/workspace/*.jsonl
 # Sorties générées par les agents (rapports, données SWOT, etc.)
 apps/agent/workspace/output/
 apps/agent/workspace/rapports/
+
+# LaTeX - fichiers auxiliaires
+*.aux
+*.lof
+*.lot
+*.toc
+*.out
+*.log
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
