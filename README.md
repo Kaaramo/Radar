@@ -10,7 +10,7 @@
 ![Next.js](https://img.shields.io/badge/Next.js-16-000?style=flat-square&logo=next.js)
 ![Node](https://img.shields.io/badge/Node-24%20LTS-339933?style=flat-square&logo=node.js)
 ![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?style=flat-square&logo=prisma)
-![Anthropic](https://img.shields.io/badge/LLM-Claude%20Opus%204.7-D97706?style=flat-square)
+![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek%20V4%20Pro-6366f1?style=flat-square)
 ![M244](https://img.shields.io/badge/M244-Veille%20Technologique-0071c5?style=flat-square)
 ![ENSA](https://img.shields.io/badge/ENSA-Tétouan-7c3aed?style=flat-square)
 
@@ -66,7 +66,7 @@ Radar déploie un agent IA autonome (OpenClaw) qui prend en charge **les 5 étap
 |---|---|
 | **Orchestrateur** | Coordonne le pipeline complet, délègue aux 7 sous-agents |
 | **Deep Research** | Recherche et enrichit le profil de l'entreprise utilisateur (one-time, onboarding) |
-| **Collecteur** | Recherche web + scraping des concurrents via DuckDuckGo + web_fetch |
+| **Collecteur** | Recherche web + scraping des concurrents via Tavily (primaire) + web_fetch (fallback DuckDuckGo) |
 | **Évaluateur CRAAP** | Note chaque source (Currency, Relevance, Authority, Accuracy, Purpose) |
 | **Analyste SWOT** | Matrice SWOT avec profil utilisateur + données concurrents |
 | **Analyste PESTEL** | Synthèse des 6 dimensions sectorielles |
@@ -91,7 +91,7 @@ Fondateur, DG ou directeur stratégie d'une PME 10 à 100 salariés. Veut être 
 
 ---
 
-## Architecture du monorepo
+## Architecture cible
 
 ```
 radar/
@@ -115,17 +115,19 @@ radar/
     └── PRD-RADAR.md            Product Requirements Document complet
 ```
 
+Le repo est volontairement vierge à ce stade : structure de dossiers posée, scaffolding non engagé. Les choix de stack sont arrêtés dans la note de cadrage et seront matérialisés au démarrage du sprint 1.
+
 ---
 
-## Stack technique
+## Stack arrêtée
 
 | Couche | Choix |
 |---|---|
 | Monorepo | pnpm 10 workspaces + Turborepo 2 |
 | Web | Next.js 16 (App Router) + Tailwind 4 |
 | Agent | OpenClaw (`ghcr.io/openclaw/openclaw:latest`, port 18789) |
-| LLM | Claude Opus 4.7 via OpenClaw |
-| Recherche web | DuckDuckGo (natif OpenClaw, sans clé API) |
+| LLM | DeepSeek V4 Pro (`deepseek/deepseek-v4-pro`, thinking=medium) |
+| Recherche web | Tavily (primaire, TAVILY_API_KEY) + DuckDuckGo (fallback) |
 | Database | PostgreSQL 17 + Prisma 6 |
 | Contracts | Zod 3 |
 | UI | Tokens Intel Dark + composants typés |
@@ -140,15 +142,12 @@ radar/
 ```bash
 # 1. Variables d'environnement
 cp .env.example .env
-# Remplir ANTHROPIC_API_KEY dans .env
+# Remplir DEEPSEEK_API_KEY, TAVILY_API_KEY, OPENCLAW_INTERNAL_SECRET dans .env
 
-# 2. Lancer les 3 services
-docker compose -f infra/docker/postgres-local/docker-compose.yml up -d
+# 2. Lancer les 3 services (postgres + openclaw + web)
+docker compose -f infra/docker/stack-complet/docker-compose.yml --env-file .env up -d --build
 
-# 3. Migrations base de données
-pnpm db:migrate
-
-# 4. Développement web uniquement (hors Docker)
+# 3. Développement web uniquement (hors Docker)
 pnpm install
 pnpm dev
 ```
@@ -174,9 +173,9 @@ Web : http://localhost:3000 · OpenClaw : http://localhost:18789
 
 ---
 
-## Auteurs
+## Répartition des responsabilités
 
-| | |
+| Auteur | Périmètre |
 |---|---|
 | **Karamo Sylla** | `apps/web` · `packages/database` · `packages/ui` · design Intel Dark |
 | **Bachirou Konaté** | `apps/agent` (OpenClaw skills) · `infra/` · configuration Docker |
