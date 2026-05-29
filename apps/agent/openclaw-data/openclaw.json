@@ -53,6 +53,7 @@
     "lastTouchedAt": "2026-05-07T00:00:00.000Z"
   },
   "gateway": {
+    "mode": "local",
     "auth": {
       "mode": "token",
       "token": "6f2b5a546a7f294124087acfda77aa9fa36d66661571ffb7"
