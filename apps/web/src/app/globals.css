@@ -1,0 +1,693 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * RADAR — globals.css
+ * Direction artistique : Radar Editorial — navy + royal blue
+ * Source de vérité : Branding/CHARTE_GRAPHIQUE_RADAR.md
+ * ─────────────────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/JetBrainsMono/JetBrainsMono-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/JetBrainsMono/JetBrainsMono-Medium.ttf") format("truetype");
+}
+
+:root {
+  --font-jetbrains-mono: "JetBrains Mono";
+}
+
+@theme {
+  /* ── Surfaces · Navy ─────────────────────────────── */
+  --color-navy: #051c2c;
+  --color-navy-900: #0a2540;
+  --color-navy-800: #133553;
+  --color-navy-700: #1f4868;
+
+  /* ── Brand · Royal Blue ──────────────────────────── */
+  --color-royal: #2251ff;
+  --color-royal-light: #4f73ff;
+  --color-royal-dark: #1a3fcc;
+  --color-royal-soft: #e5ebff;
+
+  /* ── Neutres ─────────────────────────────────────── */
+  --color-bone: #f5f1eb;
+  --color-cream: #faf8f3;
+  --color-ink: #1a1a1a;
+  --color-ink-soft: #4a4a4a;
+  --color-muted: #8fa3b8;
+  --color-muted-soft: #6b7280;
+
+  /* ── Bordures ────────────────────────────────────── */
+  --color-border: #1f4868;
+  --color-border-strong: #2251ff;
+
+  /* ── Sémantiques ─────────────────────────────────── */
+  --color-success: #0f8f65;
+  --color-warning: #c77700;
+  --color-error: #b42318;
+  --color-info: #2251ff;
+
+  /* ── PESTEL ──────────────────────────────────────── */
+  --color-pestel-political: #b42318;
+  --color-pestel-economic: #c77700;
+  --color-pestel-social: #4a1d6e;
+  --color-pestel-technological: #2251ff;
+  --color-pestel-environmental: #0f8f65;
+  --color-pestel-legal: #1a3fcc;
+
+  /* ── SWOT ────────────────────────────────────────── */
+  --color-swot-strengths: #2251ff;
+  --color-swot-weaknesses: #c77700;
+  --color-swot-opportunities: #0f8f65;
+  --color-swot-threats: #b42318;
+
+  /* ── Catégories de mouvement ─────────────────────── */
+  --color-cat-pricing: #c77700;
+  --color-cat-product: #2251ff;
+  --color-cat-hiring: #4a1d6e;
+  --color-cat-funding: #0f8f65;
+  --color-cat-communication: #8fa3b8;
+
+  /* ── Typographie ─────────────────────────────────── */
+  --font-display: var(--font-fraunces), "Times New Roman", serif;
+  --font-sans: var(--font-inter), -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "Menlo", "Consolas", monospace;
+
+  --text-display: 4rem;
+  --text-h1: 2.5rem;
+  --text-h2: 1.75rem;
+  --text-h3: 1.25rem;
+  --text-body-l: 1rem;
+  --text-body: 0.875rem;
+  --text-body-s: 0.75rem;
+  --text-eyebrow: 0.6875rem;
+  --text-mono: 0.8125rem;
+
+  /* ── Radius ──────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 9999px;
+
+  /* ── Layout ──────────────────────────────────────── */
+  --spacing-sidebar: 264px;
+  --spacing-header: 64px;
+  --container-content: 1440px;
+
+  /* ── Animations ──────────────────────────────────── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+
+  /* ── Shadows minimalistes ────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── Reset / Base ─────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--color-navy);
+  color: var(--color-bone);
+  min-height: 100dvh;
+}
+
+::selection {
+  background-color: var(--color-royal);
+  color: var(--color-bone);
+}
+
+/* ─── Mode light — provisionné pour exports PDF (V2+, inactif en V1) ─── */
+[data-theme="light"] {
+  color-scheme: light;
+}
+[data-theme="light"] body {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+}
+
+/* ─── Auth — keyframes (sobres) ────────────────────────────────────────── */
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-mount {
+  animation: fade-up 300ms var(--ease-out) both;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  display: inline-flex;
+  animation: spin 1s linear infinite;
+}
+
+/* Arcs radar (boot, success) — bascule en royal */
+@keyframes arc-1-anim {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.18;
+    transform: scale(1.06);
+  }
+}
+@keyframes arc-2-anim {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.1;
+    transform: scale(1.06);
+  }
+}
+@keyframes arc-3-anim {
+  0%,
+  100% {
+    opacity: 0.12;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.04;
+    transform: scale(1.06);
+  }
+}
+
+.arc {
+  transform-origin: 60px 540px;
+  animation-duration: 4s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+.arc-1 {
+  animation-name: arc-1-anim;
+  animation-delay: 0s;
+}
+.arc-2 {
+  animation-name: arc-2-anim;
+  animation-delay: 1.3s;
+}
+.arc-3 {
+  animation-name: arc-3-anim;
+  animation-delay: 2.6s;
+}
+
+/* Signal dot (alerte ponctuelle — bascule en warning) */
+@keyframes signal-blink {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes signal-ring {
+  0% {
+    opacity: 0.8;
+    r: 5;
+  }
+  100% {
+    opacity: 0;
+    r: 22;
+  }
+}
+.signal-dot {
+  animation: signal-blink 2.4s ease-out forwards;
+  filter: drop-shadow(0 0 6px rgba(199, 119, 0, 0.6));
+}
+.signal-ring {
+  animation: signal-ring 2.4s ease-out forwards;
+}
+
+/* Live pulse — dot « EN DIRECT » (royal) */
+@keyframes live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 81, 255, 0.45);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(34, 81, 255, 0);
+    transform: scale(1.05);
+  }
+}
+.live-pulse {
+  animation: live-pulse 1.8s ease-out infinite;
+}
+
+/* Ticker mount-in */
+@keyframes ticker-in {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.ticker-in {
+  animation: ticker-in 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Grille radar subtile (port en navy-700, presque imperceptible) */
+.radar-grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(31, 72, 104, 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(31, 72, 104, 0.18) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: 0 0;
+  -webkit-mask-image: radial-gradient(
+    ellipse at 30% 70%,
+    black 0%,
+    transparent 75%
+  );
+  mask-image: radial-gradient(ellipse at 30% 70%, black 0%, transparent 75%);
+}
+
+/* Halo atmosphérique sobre — radial royal unique (remplace mesh multicolore) */
+.editorial-halo {
+  background: radial-gradient(
+    900px circle at 80% 100%,
+    rgba(34, 81, 255, 0.1),
+    transparent 60%
+  );
+}
+
+/* Compatibilité descendante : .mesh-bg → .editorial-halo */
+.mesh-bg {
+  background: radial-gradient(
+    900px circle at 80% 100%,
+    rgba(34, 81, 255, 0.1),
+    transparent 60%
+  );
+}
+
+/* ─── Onboarding — keyframes ─────────────────────────────────────────── */
+
+/* Stepper actif (royal) */
+@keyframes onb-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 81, 255, 0);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px rgba(34, 81, 255, 0.15);
+  }
+}
+.onb-pulse {
+  animation: onb-pulse 2.4s ease-in-out infinite;
+}
+
+/* Banner Deep Research */
+@keyframes dr-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+.dr-pulse {
+  animation: dr-pulse 2s ease-in-out infinite;
+}
+
+/* Shake (erreurs) */
+@keyframes onb-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+.onb-shake {
+  animation: onb-shake 400ms ease-in-out;
+}
+
+/* Card concurrent ajoutée */
+@keyframes comp-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.comp-in {
+  animation: comp-in 200ms var(--ease-out) both;
+}
+
+/* Check axe sélectionné (spring) */
+@keyframes axis-check-in {
+  from {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+.axis-check-in {
+  animation: axis-check-in 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Toast Deep Research */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.toast-in {
+  animation: toast-in 200ms var(--ease-out) both;
+}
+
+/* Success — arcs concentriques */
+@keyframes rpd-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+.rpd-arc-1 {
+  opacity: 0.05;
+  animation: rpd-pulse 6s ease-in-out 0s infinite;
+  transform-origin: center;
+}
+.rpd-arc-2 {
+  opacity: 0.03;
+  animation: rpd-pulse 6s ease-in-out 2s infinite;
+  transform-origin: center;
+}
+.rpd-arc-3 {
+  opacity: 0.02;
+  animation: rpd-pulse 6s ease-in-out 4s infinite;
+  transform-origin: center;
+}
+
+/* Success — pop spring sur l'icône */
+@keyframes success-pop {
+  from {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+.success-pop {
+  animation: success-pop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Success — boot draw des arcs */
+@keyframes boot-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.boot-arc {
+  stroke-dasharray: 80;
+  stroke-dashoffset: 80;
+}
+.boot-arc-1 {
+  animation: boot-draw 600ms ease-out 200ms forwards;
+}
+.boot-arc-2 {
+  animation: boot-draw 600ms ease-out 400ms forwards;
+}
+.boot-arc-3 {
+  animation: boot-draw 600ms ease-out 600ms forwards;
+}
+
+/* Success — boot dot blink */
+@keyframes boot-dot {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.boot-dot {
+  opacity: 0;
+  animation: boot-dot 800ms ease-out 800ms forwards;
+}
+
+/* Success — fade-up cascade chorégraphiée */
+.success-eyebrow {
+  animation: fade-up 400ms ease-out 700ms both;
+}
+.success-h1 {
+  animation: fade-up 400ms ease-out 1000ms both;
+}
+.success-sub {
+  animation: fade-up 400ms ease-out 1300ms both;
+}
+.success-divider {
+  animation: divider-grow 600ms cubic-bezier(0.16, 1, 0.3, 1) 1600ms both;
+}
+.success-stats {
+  animation: fade-up 400ms ease-out 1800ms both;
+}
+.success-cta {
+  animation: fade-up 400ms ease-out 2300ms both;
+}
+.success-progress {
+  animation: fade-up 400ms ease-out 2700ms both;
+}
+
+/* Divider hairline qui se dessine du centre */
+@keyframes divider-grow {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* Auto-redirect progress bar */
+@keyframes redirect-bar {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* ─── Dashboard — animations ──────────────────────────────────────────── */
+
+@keyframes rd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.rd-spin {
+  display: inline-flex;
+  animation: rd-spin 1.5s linear infinite;
+}
+
+/* Empty state J0 — 4 cercles concentriques pulsant */
+@keyframes rd-pulse-circle {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.1);
+  }
+}
+.rd-pulse-1 {
+  animation: rd-pulse-circle 4s ease-in-out 0s infinite;
+  transform-origin: center;
+}
+.rd-pulse-2 {
+  animation: rd-pulse-circle 4s ease-in-out 0.5s infinite;
+  transform-origin: center;
+}
+.rd-pulse-3 {
+  animation: rd-pulse-circle 4s ease-in-out 1s infinite;
+  transform-origin: center;
+}
+.rd-pulse-4 {
+  animation: rd-pulse-circle 4s ease-in-out 1.5s infinite;
+  transform-origin: center;
+}
+
+/* Empty state J0 — dot warning qui clignote */
+@keyframes rd-pulse-dot {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+}
+.rd-pulse-dot {
+  animation: rd-pulse-dot 2.4s ease-out infinite;
+}
+
+/* Drawer mouvement — slide-in droite */
+@keyframes drawer-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.drawer-slide-in {
+  animation: drawer-slide-in 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Drawer backdrop fade-in */
+@keyframes backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.backdrop-fade-in {
+  animation: backdrop-fade-in 200ms ease-out;
+}
+
+/* Movement card — dot NEW pulsant royal */
+@keyframes mvt-newdot-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 81, 255, 0.45);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(34, 81, 255, 0);
+  }
+}
+.mvt-newdot-pulse {
+  animation: mvt-newdot-pulse 1.8s ease-out infinite;
+}
+
+/* Cycle progress shimmer (royal) */
+@keyframes cycle-progress-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.cycle-progress-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-royal) 0%,
+    var(--color-royal-light) 50%,
+    var(--color-royal) 100%
+  );
+  background-size: 200% 100%;
+  animation: cycle-progress-shimmer 2s linear infinite;
+}
+
+/* ─── Utility classes spécifiques RADAR ────────────────────────────────── */
+
+/* Card border-left signaux */
+.radar-card-validated {
+  border-left: 3px solid var(--color-royal);
+}
+.radar-card-warning {
+  border-left: 3px solid var(--color-warning);
+}
+.radar-card-critical {
+  border-left: 3px solid var(--color-error);
+}

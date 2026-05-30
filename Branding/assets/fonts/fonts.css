@@ -1,0 +1,29 @@
+/* ────────────────────────────────────────────────────────────────────
+ * RADAR — fonts.css
+ * Self-hosted @font-face declarations pour JetBrains Mono.
+ *
+ * Note : Fraunces (display) et Inter (body) sont chargees via
+ * `next/font/google` dans `apps/web/src/app/layout.tsx` — Next.js
+ * télécharge et sert les TTF localement au build, donc 0 requête tierce.
+ *
+ * JetBrains Mono reste auto-hébergée dans ce dossier (TTF fournis pour
+ * usage hors-Next : Word, Figma, claude.ai « Set up your design system »).
+ * ──────────────────────────────────────────────────────────────────── */
+
+/* ─── JetBrains Mono ──────────────────────────────────────────────── */
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./JetBrainsMono/JetBrainsMono-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./JetBrainsMono/JetBrainsMono-Medium.ttf") format("truetype");
+}

@@ -1,0 +1,168 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ * RADAR — globals.css (référence Branding)
+ * Direction artistique : Radar Editorial — navy + royal blue
+ *
+ * Tailwind v4 CSS-first config via @theme. Référence canonique copiée
+ * dans apps/web/src/app/globals.css.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+@import "tailwindcss";
+
+/* ─── Polices Google Fonts ─────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+/* ─── Theme (Tailwind v4) ──────────────────────────────────────────────── */
+@theme {
+  /* ── Surfaces · Navy ─────────────────────────────── */
+  --color-navy: #051c2c;
+  --color-navy-900: #0a2540;
+  --color-navy-800: #133553;
+  --color-navy-700: #1f4868;
+
+  /* ── Brand · Royal Blue ──────────────────────────── */
+  --color-royal: #2251ff;
+  --color-royal-light: #4f73ff;
+  --color-royal-dark: #1a3fcc;
+  --color-royal-soft: #e5ebff;
+
+  /* ── Neutres ─────────────────────────────────────── */
+  --color-bone: #f5f1eb;
+  --color-cream: #faf8f3;
+  --color-ink: #1a1a1a;
+  --color-ink-soft: #4a4a4a;
+  --color-muted: #8fa3b8;
+  --color-muted-soft: #6b7280;
+
+  /* ── Bordures ────────────────────────────────────── */
+  --color-border: #1f4868;
+  --color-border-strong: #2251ff;
+
+  /* ── Sémantiques ─────────────────────────────────── */
+  --color-success: #0f8f65;
+  --color-warning: #c77700;
+  --color-error: #b42318;
+  --color-info: #2251ff;
+
+  /* ── PESTEL ──────────────────────────────────────── */
+  --color-pestel-political: #b42318;
+  --color-pestel-economic: #c77700;
+  --color-pestel-social: #4a1d6e;
+  --color-pestel-technological: #2251ff;
+  --color-pestel-environmental: #0f8f65;
+  --color-pestel-legal: #1a3fcc;
+
+  /* ── SWOT ────────────────────────────────────────── */
+  --color-swot-strengths: #2251ff;
+  --color-swot-weaknesses: #c77700;
+  --color-swot-opportunities: #0f8f65;
+  --color-swot-threats: #b42318;
+
+  /* ── Catégories de mouvement ─────────────────────── */
+  --color-cat-pricing: #c77700;
+  --color-cat-product: #2251ff;
+  --color-cat-hiring: #4a1d6e;
+  --color-cat-funding: #0f8f65;
+  --color-cat-communication: #8fa3b8;
+
+  /* ── Typographie ─────────────────────────────────── */
+  --font-display: "Fraunces", "Times New Roman", serif;
+  --font-sans: "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Menlo", "Consolas", monospace;
+
+  --text-display: 4rem; /* 64px */
+  --text-h1: 2.5rem; /* 40px */
+  --text-h2: 1.75rem; /* 28px */
+  --text-h3: 1.25rem; /* 20px */
+  --text-body-l: 1rem; /* 16px */
+  --text-body: 0.875rem; /* 14px */
+  --text-body-s: 0.75rem; /* 12px */
+  --text-eyebrow: 0.6875rem; /* 11px */
+  --text-mono: 0.8125rem; /* 13px */
+
+  /* ── Radius ──────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 9999px;
+
+  /* ── Layout ──────────────────────────────────────── */
+  --spacing-sidebar: 264px;
+  --spacing-header: 64px;
+  --container-content: 1440px;
+
+  /* ── Animations ──────────────────────────────────── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+
+  /* ── Shadows ─────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── Reset / Base ─────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--color-navy);
+  color: var(--color-bone);
+  min-height: 100dvh;
+}
+
+::selection {
+  background-color: var(--color-royal);
+  color: var(--color-bone);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-navy);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-navy-700);
+  border-radius: var(--radius-pill);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-royal);
+}
+
+/* ─── Mode light — provisionné pour exports PDF (V2+) ──────────────────── */
+[data-theme="light"] {
+  color-scheme: light;
+}
+[data-theme="light"] body {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+}
+
+/* ─── Utility classes spécifiques RADAR ────────────────────────────────── */
+
+/* Card avec border-left royal (mouvement validé, signal recoupé) */
+.radar-card-validated {
+  border-left: 3px solid var(--color-royal);
+}
+
+/* Card avec border-left warning (à vérifier, échantillon faible) */
+.radar-card-warning {
+  border-left: 3px solid var(--color-warning);
+}
+
+/* Card avec border-left error (signal critique, source rejetée) */
+.radar-card-critical {
+  border-left: 3px solid var(--color-error);
+}

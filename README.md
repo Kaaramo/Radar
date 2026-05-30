@@ -22,13 +22,13 @@
 
 Les entreprises surveillent leurs concurrents de manière manuelle et fragmentée. La direction stratégie consacre une à deux heures par jour à scroller LinkedIn, lire la presse en diagonale, et consigner ce qu'elle retient dans un Google Doc sans structure analytique.
 
-| Défaillance | Conséquence business |
-|---|---|
-| Découverte tardive des mouvements concurrents | Perte d'avantage temporel |
-| Aucune méthode d'évaluation des sources | Mélange d'infos fiables et de rumeurs |
-| Pas de synthèse SWOT ni PESTEL | Décisions à l'intuition |
-| Signaux faibles ignorés | Tendances émergentes manquées |
-| Pas de mémoire chronologique | Reconstruction laborieuse de l'historique |
+| Défaillance                                   | Conséquence business                      |
+| --------------------------------------------- | ----------------------------------------- |
+| Découverte tardive des mouvements concurrents | Perte d'avantage temporel                 |
+| Aucune méthode d'évaluation des sources       | Mélange d'infos fiables et de rumeurs     |
+| Pas de synthèse SWOT ni PESTEL                | Décisions à l'intuition                   |
+| Signaux faibles ignorés                       | Tendances émergentes manquées             |
+| Pas de mémoire chronologique                  | Reconstruction laborieuse de l'historique |
 
 > Le problème n'est pas un manque d'information. C'est un manque de **méthode** et d'**automatisation**.
 
@@ -62,16 +62,16 @@ Radar déploie un agent IA autonome (OpenClaw) qui prend en charge **les 5 étap
 
 ### Le pipeline OpenClaw : 8 agents spécialisés
 
-| Agent | Mission |
-|---|---|
-| **Orchestrateur** | Coordonne le pipeline complet, délègue aux 7 sous-agents |
-| **Deep Research** | Recherche et enrichit le profil de l'entreprise utilisateur (one-time, onboarding) |
-| **Collecteur** | Recherche web + scraping des concurrents via DuckDuckGo + web_fetch |
-| **Évaluateur CRAAP** | Note chaque source (Currency, Relevance, Authority, Accuracy, Purpose) |
-| **Analyste SWOT** | Matrice SWOT avec profil utilisateur + données concurrents |
-| **Analyste PESTEL** | Synthèse des 6 dimensions sectorielles |
-| **Détecteur signaux faibles** | Croise les sources sur fenêtre glissante 30 jours |
-| **Rédacteur** | Produit la synthèse finale structurée |
+| Agent                         | Mission                                                                            |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
+| **Orchestrateur**             | Coordonne le pipeline complet, délègue aux 7 sous-agents                           |
+| **Deep Research**             | Recherche et enrichit le profil de l'entreprise utilisateur (one-time, onboarding) |
+| **Collecteur**                | Recherche web + scraping des concurrents via DuckDuckGo + web_fetch                |
+| **Évaluateur CRAAP**          | Note chaque source (Currency, Relevance, Authority, Accuracy, Purpose)             |
+| **Analyste SWOT**             | Matrice SWOT avec profil utilisateur + données concurrents                         |
+| **Analyste PESTEL**           | Synthèse des 6 dimensions sectorielles                                             |
+| **Détecteur signaux faibles** | Croise les sources sur fenêtre glissante 30 jours                                  |
+| **Rédacteur**                 | Produit la synthèse finale structurée                                              |
 
 ---
 
@@ -121,17 +121,17 @@ Le repo est volontairement vierge à ce stade : structure de dossiers posée, sc
 
 ## Stack arrêtée
 
-| Couche | Choix |
-|---|---|
-| Monorepo | pnpm 10 workspaces + Turborepo 2 |
-| Web | Next.js 16 (App Router) + Tailwind 4 |
-| Agent | OpenClaw (`ghcr.io/openclaw/openclaw:latest`, port 18789) |
-| LLM | Claude Opus 4.7 via OpenClaw |
-| Recherche web | DuckDuckGo (natif OpenClaw, sans clé API) |
-| Database | PostgreSQL 17 + Prisma 6 |
-| Contracts | Zod 3 |
-| UI | Tokens Intel Dark + composants typés |
-| Infra | Docker Compose (3 services : postgres + openclaw + web) |
+| Couche        | Choix                                                     |
+| ------------- | --------------------------------------------------------- |
+| Monorepo      | pnpm 10 workspaces + Turborepo 2                          |
+| Web           | Next.js 16 (App Router) + Tailwind 4                      |
+| Agent         | OpenClaw (`ghcr.io/openclaw/openclaw:latest`, port 18789) |
+| LLM           | Claude Opus 4.7 via OpenClaw                              |
+| Recherche web | DuckDuckGo (natif OpenClaw, sans clé API)                 |
+| Database      | PostgreSQL 17 + Prisma 6                                  |
+| Contracts     | Zod 3                                                     |
+| UI            | Tokens Intel Dark + composants typés                      |
+| Infra         | Docker Compose (3 services : postgres + openclaw + web)   |
 
 ---
 
@@ -159,14 +159,14 @@ Web : http://localhost:3000 · OpenClaw : http://localhost:18789
 
 ### Scripts disponibles
 
-| Commande | Description |
-|---|---|
-| `pnpm dev` | Lance le web en watch mode |
-| `pnpm build` | Build production |
-| `pnpm lint` | Lint tous les packages |
-| `pnpm typecheck` | Typecheck TypeScript |
+| Commande          | Description                    |
+| ----------------- | ------------------------------ |
+| `pnpm dev`        | Lance le web en watch mode     |
+| `pnpm build`      | Build production               |
+| `pnpm lint`       | Lint tous les packages         |
+| `pnpm typecheck`  | Typecheck TypeScript           |
 | `pnpm db:migrate` | Applique les migrations Prisma |
-| `pnpm db:seed` | Seed la base |
+| `pnpm db:seed`    | Seed la base                   |
 
 ---
 
@@ -178,10 +178,10 @@ Web : http://localhost:3000 · OpenClaw : http://localhost:18789
 
 ## Répartition des responsabilités
 
-| Auteur | Périmètre |
-|---|---|
-| **Karamo Sylla** | `apps/web` · `packages/database` · `packages/ui` · design Intel Dark |
-| **Bachirou Konaté** | `apps/agent` (OpenClaw skills) · `infra/` · configuration Docker |
+| Auteur              | Périmètre                                                            |
+| ------------------- | -------------------------------------------------------------------- |
+| **Karamo Sylla**    | `apps/web` · `packages/database` · `packages/ui` · design Intel Dark |
+| **Bachirou Konaté** | `apps/agent` (OpenClaw skills) · `infra/` · configuration Docker     |
 
 **Encadrant :** Pr. Younes Wadiai
 **Cadre :** Module M244 (Veille Technologique), Cycle Ingénieur BDIA, ENSA Tétouan

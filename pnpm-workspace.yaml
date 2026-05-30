@@ -1,0 +1,15 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Optional native deps installés mais non nécessaires en dev local
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
+
+# Autorisation explicite des build scripts (Prisma doit compiler son client, Tailwind sa lib oxide)
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - prisma
+  - "@tailwindcss/oxide"

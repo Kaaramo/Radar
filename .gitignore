@@ -41,13 +41,46 @@ packages/database/prisma/*.db-journal
 # Docker
 infra/docker/**/data/
 
-# OpenClaw runtime output (logs, health, sessions) — pas de versionnement
+# OpenClaw runtime state (généré au runtime) — on versionne seulement
+# openclaw.json, auth-profiles.json, tests/.gitkeep, workspace/skills + scripts.
 apps/agent/openclaw-data/logs/
 apps/agent/openclaw-data/sessions/
+apps/agent/openclaw-data/agents/*/sessions/
+apps/agent/openclaw-data/agents/*/agent/auth-state.json
+apps/agent/openclaw-data/devices/
+apps/agent/openclaw-data/flows/
+apps/agent/openclaw-data/identity/
+apps/agent/openclaw-data/subagents/
+apps/agent/openclaw-data/tasks/
+apps/agent/openclaw-data/plugin-skills/
+apps/agent/openclaw-data/update-check.json
+apps/agent/openclaw-data/*.last-good
+apps/agent/workspace/.openclaw/
+apps/agent/workspace/reports/
+apps/agent/workspace/AGENTS.md
+apps/agent/workspace/BOOTSTRAP.md
+apps/agent/workspace/HEARTBEAT.md
+apps/agent/workspace/IDENTITY.md
+apps/agent/workspace/SOUL.md
+apps/agent/workspace/TOOLS.md
+apps/agent/workspace/USER.md
+apps/agent/workspace/eval-*.json
+apps/agent/workspace/evaluation-*.json
+apps/agent/workspace/radar-sources-*.json
+apps/agent/workspace/rapport-final-*.md
+apps/agent/workspace/signaux-*.json
 
 # Misc
 *.pem
 .cache/
+
+# Artefacts de dev / scratch / tests
+.tmp-design/
+radar-login.png
+radar-register.png
+.playwright-mcp/
+NUL
+packages/database/tmp-*.mjs
 
 #personal files
 Note_bachirou.md

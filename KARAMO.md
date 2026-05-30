@@ -43,16 +43,16 @@ Reseau interne Docker : les 3 services se parlent directement.
 
 ## Les 8 agents OpenClaw (pour comprendre le systeme)
 
-| Agent | Role | Quand |
-|---|---|---|
-| **orchestrateur** | Coordonne tous les sous-agents, aucune tache propre | A chaque cycle de veille |
-| **deep-research** | Recherche le profil de l'entreprise utilisateur | UNE SEULE FOIS a l'onboarding |
-| collecteur | Scrape les sources concurrentes | Chaque cycle |
-| evaluateur | Score CRAAP des sources | Chaque cycle |
-| analyste-swot | Analyse SWOT avec profil utilisateur | Chaque cycle |
-| analyste-pestel | Analyse PESTEL | Chaque cycle |
-| detecteur-signaux-faibles | Signaux faibles | Chaque cycle |
-| redacteur | Synthese finale | Chaque cycle |
+| Agent                     | Role                                                | Quand                         |
+| ------------------------- | --------------------------------------------------- | ----------------------------- |
+| **orchestrateur**         | Coordonne tous les sous-agents, aucune tache propre | A chaque cycle de veille      |
+| **deep-research**         | Recherche le profil de l'entreprise utilisateur     | UNE SEULE FOIS a l'onboarding |
+| collecteur                | Scrape les sources concurrentes                     | Chaque cycle                  |
+| evaluateur                | Score CRAAP des sources                             | Chaque cycle                  |
+| analyste-swot             | Analyse SWOT avec profil utilisateur                | Chaque cycle                  |
+| analyste-pestel           | Analyse PESTEL                                      | Chaque cycle                  |
+| detecteur-signaux-faibles | Signaux faibles                                     | Chaque cycle                  |
+| redacteur                 | Synthese finale                                     | Chaque cycle                  |
 
 ---
 
@@ -88,16 +88,16 @@ Ce profil est cree une seule fois lors de l'onboarding et utilise par tous les c
 Les agents OpenClaw envoient leurs resultats vers des endpoints internes de ton app.
 Tu dois creer ces routes dans `apps/web/app/api/internal/` :
 
-| Endpoint | Quand | Ce qu'il recoit |
-|---|---|---|
-| `POST /api/internal/profil` | Fin de deep-research (onboarding) | `{ userId, nomEntreprise, siteWeb, secteur, description, produits[], marches[], positionnement }` |
-| `POST /api/internal/rapport/progresse` | A chaque etape du cycle | `{ rapportId, statut, progressionPct, etape }` |
-| `POST /api/internal/sources` | Apres collecte | `{ rapportId, sources[] }` |
-| `POST /api/internal/swot` | Apres analyse SWOT | `{ rapportId, strengths[], weaknesses[], opportunities[], threats[] }` |
-| `POST /api/internal/pestel` | Apres analyse PESTEL | `{ rapportId, political[], economic[], social[], technological[], environmental[], legal[] }` |
-| `POST /api/internal/signaux` | Apres detection | `{ rapportId, signaux[] }` |
-| `POST /api/internal/rapport/termine` | Fin du cycle | `{ rapportId, synthese }` |
-| `POST /api/internal/rapport/echec` | En cas d'erreur | `{ rapportId, erreur }` |
+| Endpoint                               | Quand                             | Ce qu'il recoit                                                                                   |
+| -------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `POST /api/internal/profil`            | Fin de deep-research (onboarding) | `{ userId, nomEntreprise, siteWeb, secteur, description, produits[], marches[], positionnement }` |
+| `POST /api/internal/rapport/progresse` | A chaque etape du cycle           | `{ rapportId, statut, progressionPct, etape }`                                                    |
+| `POST /api/internal/sources`           | Apres collecte                    | `{ rapportId, sources[] }`                                                                        |
+| `POST /api/internal/swot`              | Apres analyse SWOT                | `{ rapportId, strengths[], weaknesses[], opportunities[], threats[] }`                            |
+| `POST /api/internal/pestel`            | Apres analyse PESTEL              | `{ rapportId, political[], economic[], social[], technological[], environmental[], legal[] }`     |
+| `POST /api/internal/signaux`           | Apres detection                   | `{ rapportId, signaux[] }`                                                                        |
+| `POST /api/internal/rapport/termine`   | Fin du cycle                      | `{ rapportId, synthese }`                                                                         |
+| `POST /api/internal/rapport/echec`     | En cas d'erreur                   | `{ rapportId, erreur }`                                                                           |
 
 Ces routes font juste **valider le JSON + ecrire en base via Prisma**.
 
@@ -111,17 +111,19 @@ Apres que l'utilisateur a rempli son profil entreprise :
 
 ```typescript
 // apps/web - onboarding termine, lancer deep-research
-const response = await fetch('http://openclaw:18789/v1/chat/completions', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("http://openclaw:18789/v1/chat/completions", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    model: 'openclaw/default',
-    messages: [{
-      role: 'user',
-      content: `Lance deep-research pour userId: ${userId}. Entreprise: ${nomEntreprise}. Site: ${siteWeb}`
-    }]
-  })
-})
+    model: "openclaw/default",
+    messages: [
+      {
+        role: "user",
+        content: `Lance deep-research pour userId: ${userId}. Entreprise: ${nomEntreprise}. Site: ${siteWeb}`,
+      },
+    ],
+  }),
+});
 // Retour immediat 202 - OpenClaw travaille en arriere-plan
 ```
 
@@ -131,19 +133,21 @@ Quand l'utilisateur lance une veille (ou cron 6h00) :
 
 ```typescript
 // apps/web - declencher un cycle de veille
-const profil = await prisma.profilUtilisateur.findUnique({ where: { userId } })
+const profil = await prisma.profilUtilisateur.findUnique({ where: { userId } });
 
-const response = await fetch('http://openclaw:18789/v1/chat/completions', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("http://openclaw:18789/v1/chat/completions", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    model: 'openclaw/default',
-    messages: [{
-      role: 'user',
-      content: `Lance la veille pour rapportId: ${rapportId}. Profil utilisateur: ${JSON.stringify(profil)}`
-    }]
-  })
-})
+    model: "openclaw/default",
+    messages: [
+      {
+        role: "user",
+        content: `Lance la veille pour rapportId: ${rapportId}. Profil utilisateur: ${JSON.stringify(profil)}`,
+      },
+    ],
+  }),
+});
 // Retour immediat 202 - OpenClaw travaille en arriere-plan
 ```
 

@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx prettier --write \"$CLAUDE_FILE_PATHS\" 2>NUL"
+          }
+        ]
+      }
+    ]
+  }
+}
