@@ -50,6 +50,7 @@
 \usepackage{graphicx}
 \graphicspath{{./}{images/}}
 \usepackage{float}
+\usepackage{pdfpages}
 \usepackage{caption}
 \captionsetup{font=small,labelfont={bf,color=ensaBlue},labelsep=period}
 \usepackage{tikz}
@@ -1175,5 +1176,12 @@ Google Alerts : \url{https://www.google.com/alerts}\\
 Feedly : \url{https://feedly.com/}
 
 \end{multicols}
+
+% =========================================================================
+% ANNEXE - RAPPORT TECHNIQUE DE VEILLE (PDF)
+% =========================================================================
+\chapter*{Annexe : rapport technique de veille}
+\addcontentsline{toc}{chapter}{Annexe : rapport technique de veille}
+\includepdf[pages=-,fitpaper=true]{Rapport_technique_veille_projet_Radar.pdf}
 
 \end{document}
