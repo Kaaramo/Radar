@@ -1,23 +1,22 @@
-# ─────────────────────────────────────────────────────────────────────────
-# RADAR — stack complète V1 démo (académique M244).
-#
-# 2 services : openclaw (agent IA Bachirou) + web (Next.js Karamo).
-# Pas de postgres local : on lit Neon Postgres serverless via DATABASE_URL.
-#
-# Lancer :
-#   docker compose --env-file ../../../apps/web/.env.local up -d --build
-#
-# Stopper :
-#   docker compose down
-#
-# Note .env.local : on charge directement apps/web/.env.local pour éviter
-# de dupliquer les secrets dans un .env racine.
-# ─────────────────────────────────────────────────────────────────────────
-
 services:
-  # ── OpenClaw — agent IA (8 sous-agents : orchestrateur, deep-research,
-  #     collecteur, evaluateur, analyste-swot, analyste-pestel,
-  #     detecteur-signaux-faibles, redacteur)
+  postgres:
+    image: postgres:17-alpine
+    container_name: radar-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: radar
+      POSTGRES_PASSWORD: radar
+      POSTGRES_DB: radar
+    ports:
+      - "5432:5432"
+    volumes:
+      - radar_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radar -d radar"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   openclaw:
     image: ghcr.io/openclaw/openclaw:latest
     container_name: radar-openclaw
@@ -25,21 +24,17 @@ services:
     ports:
       - "18789:18789"
     volumes:
-      # Config + cron + auth → /home/node/.openclaw
       - ../../../apps/agent/openclaw-data:/home/node/.openclaw
-      # 8 SKILL.md → workspace OpenClaw
       - ../../../apps/agent/workspace:/home/node/.openclaw/workspace
     environment:
-      # LLM principal : DeepSeek V4 Pro (cf. apps/agent/openclaw-data/openclaw.json)
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
-      # LLM fallback (plugin activé dans openclaw-data/openclaw.json, non utilisé par défaut)
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      # Recherche web — Tavily primaire, DuckDuckGo fallback gratuit
       TAVILY_API_KEY: ${TAVILY_API_KEY}
-      # Secret partagé pour authentifier les callbacks → /api/internal/*
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENCLAW_INTERNAL_SECRET: ${OPENCLAW_INTERNAL_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
-  # ── Web Next.js (dashboard, auth, onboarding, API internal)
   web:
     build:
       context: ../../../
@@ -49,28 +44,14 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # ── Database : Neon Postgres serverless (pas de postgres local) ───
-      DATABASE_URL: ${DATABASE_URL}
-      DIRECT_URL: ${DIRECT_URL}
-
-      # ── Better Auth — session secret, base URL ─────────────────────────
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
-
-      # ── Google OAuth (mode test) ───────────────────────────────────────
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-
-      # ── OpenAI (onboarding deep research) ──────────────────────────────
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-
-      # ── OpenClaw (réseau Docker interne) ───────────────────────────────
-      OPENCLAW_BASE_URL: http://openclaw:18789
+      DATABASE_URL: postgresql://radar:radar@postgres:5432/radar?schema=public
+      OPENCLAW_URL: http://openclaw:18789
       OPENCLAW_INTERNAL_SECRET: ${OPENCLAW_INTERNAL_SECRET}
-
-      # Production runtime
-      NODE_ENV: production
     depends_on:
+      postgres:
+        condition: service_healthy
       openclaw:
         condition: service_started
+
+volumes:
+  radar_pg_data:

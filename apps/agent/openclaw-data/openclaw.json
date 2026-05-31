@@ -14,7 +14,6 @@
   },
   "tools": {
     "profile": "coding",
-    "deny": ["web_fetch"],
     "web": {
       "search": {
         "provider": "tavily"
@@ -26,8 +25,17 @@
     "maxConcurrentRuns": 1,
     "retry": {
       "maxAttempts": 3,
-      "backoffMs": [60000, 120000, 300000],
-      "retryOn": ["rate_limit", "overloaded", "network", "server_error"]
+      "backoffMs": [
+        60000,
+        120000,
+        300000
+      ],
+      "retryOn": [
+        "rate_limit",
+        "overloaded",
+        "network",
+        "server_error"
+      ]
     }
   },
   "plugins": {
@@ -54,13 +62,15 @@
     "lastTouchedAt": "2026-05-07T00:00:00.000Z"
   },
   "gateway": {
-    "mode": "local",
     "auth": {
       "mode": "token",
       "token": "6f2b5a546a7f294124087acfda77aa9fa36d66661571ffb7"
     },
     "controlUi": {
-      "allowedOrigins": ["http://localhost:18789", "http://127.0.0.1:18789"]
+      "allowedOrigins": [
+        "http://localhost:18789",
+        "http://127.0.0.1:18789"
+      ]
     }
   }
 }

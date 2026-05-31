@@ -12,7 +12,6 @@ Le SWOT vient après le PESTEL et les signaux faibles pour une raison délibér�
 ## Message d'entrée attendu
 
 Le message contient :
-
 - `rapportId` : identifiant du rapport en cours
 - `profilUtilisateur` : JSON complet (nomEntreprise, secteur, description, produits, marches, positionnement)
 - Sources évaluées (tableau JSON avec scores CRAAP) — **n'utilise que les sources avec score total ≥ 6 ET scoreCRAAP.currency ≥ 2** (exclure toute source avec currency 0 ou 1, soit plus de 90 jours)
@@ -39,36 +38,28 @@ Ne recopie pas le PESTEL mot pour mot : reformule en termes d'implication spéci
 La matrice SWOT est construite du point de vue de l'entreprise utilisateur par rapport à ses concurrents :
 
 ### Forces (Strengths) — Internes, positifs
-
 Avantages concurrentiels de l'entreprise utilisateur comparée aux concurrents observés :
-
 - Différenciateurs produit/service identifiés
 - Positionnement unique
 - Segments de marché non couverts par les concurrents
 - Qualité, prix, technologie supérieure si identifiable
 
 ### Faiblesses (Weaknesses) — Internes, négatifs
-
 Désavantages révélés par comparaison avec les concurrents et les signaux du marché :
-
 - Lacunes de gamme que les concurrents couvrent
 - Marchés ou segments non adressés
 - Retard technologique ou d'innovation (renforcé par les signaux faibles)
 - Positionnement moins différencié
 
 ### Opportunités (Opportunities) — Externes, positifs
-
 Incluant les opportunités concurrentes ET macro-environnementales :
-
 - Marchés en croissance non encore dominés
 - Faiblesses identifiées chez les concurrents
 - Facteurs PESTEL positifs exploitables
 - Signaux faibles émergents favorables
 
 ### Menaces (Threats) — Externes, négatifs
-
 Incluant les menaces concurrentes ET macro-environnementales :
-
 - Nouveaux produits ou expansions concurrentes
 - Facteurs PESTEL défavorables
 - Signaux faibles précurseurs d'une disruption
@@ -85,7 +76,6 @@ Incluant les menaces concurrentes ET macro-environnementales :
 ## Configuration API interne
 
 Pour persister l'analyse SWOT, utilise exec avec node fetch :
-
 ```
 node -e "fetch('http://web:3000/api/internal/swot',{method:'POST',headers:{'Content-Type':'application/json','x-internal-secret':process.env.OPENCLAW_INTERNAL_SECRET||''},body:JSON.stringify(DATA)}).then(r=>r.json()).then(d=>console.log(JSON.stringify(d))).catch(e=>console.error(e.message))"
 ```
@@ -100,14 +90,18 @@ node -e "fetch('http://web:3000/api/internal/swot',{method:'POST',headers:{'Cont
       {
         "titre": "Intitulé court de la force",
         "description": "Explication factuelle en 2-3 phrases",
-        "sources": [{ "titre": "Titre de la source", "url": "https://..." }]
+        "sources": [
+          { "titre": "Titre de la source", "url": "https://..." }
+        ]
       }
     ],
     "faiblesses": [
       {
         "titre": "Intitulé court de la faiblesse",
         "description": "Explication factuelle en 2-3 phrases",
-        "sources": [{ "titre": "Titre de la source", "url": "https://..." }]
+        "sources": [
+          { "titre": "Titre de la source", "url": "https://..." }
+        ]
       }
     ],
     "opportunites": [
@@ -115,7 +109,9 @@ node -e "fetch('http://web:3000/api/internal/swot',{method:'POST',headers:{'Cont
         "titre": "Intitulé court de l'opportunité",
         "description": "Explication factuelle en 2-3 phrases",
         "origine": "concurrent | pestel | signal_faible",
-        "sources": [{ "titre": "Titre de la source", "url": "https://..." }]
+        "sources": [
+          { "titre": "Titre de la source", "url": "https://..." }
+        ]
       }
     ],
     "menaces": [
@@ -123,7 +119,9 @@ node -e "fetch('http://web:3000/api/internal/swot',{method:'POST',headers:{'Cont
         "titre": "Intitulé court de la menace",
         "description": "Explication factuelle en 2-3 phrases",
         "origine": "concurrent | pestel | signal_faible",
-        "sources": [{ "titre": "Titre de la source", "url": "https://..." }]
+        "sources": [
+          { "titre": "Titre de la source", "url": "https://..." }
+        ]
       }
     ]
   },
