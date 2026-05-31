@@ -10,6 +10,42 @@ export type LogoProps = {
   ariaLabel?: string;
 };
 
+/**
+ * Radar wordmark seul (texte « RADAR », sans le mark/icône) — variante "light"
+ * (bone). Inline SVG pour la prop `height` sans surcharge `<Image>`.
+ *
+ * Source : Branding/logo/wordmark-light.svg
+ */
+export function RadarWordmarkLight({
+  height = 36,
+  className,
+  ariaLabel = "RADAR",
+}: LogoProps) {
+  return (
+    <svg
+      height={height}
+      viewBox="0 0 280 64"
+      fill="none"
+      role="img"
+      aria-label={ariaLabel}
+      className={className}
+      style={{ display: "block" }}
+    >
+      <text
+        x="0"
+        y="50"
+        fontFamily="Inter, -apple-system, system-ui, sans-serif"
+        fontSize="56"
+        fontWeight="700"
+        fill="#F5F1EB"
+        letterSpacing="3"
+      >
+        RADAR
+      </text>
+    </svg>
+  );
+}
+
 export function RadarLockupLight({
   height = 36,
   className,

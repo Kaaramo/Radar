@@ -3,6 +3,8 @@ import { Fraunces, Inter } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 
+import { AppSplash } from "@/components/brand/app-splash";
+
 const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
@@ -49,6 +51,7 @@ export default function RootLayout({
     <html lang="fr" className={`${fraunces.variable} ${inter.variable}`}>
       <body className="bg-navy text-bone min-h-dvh font-sans">
         <NuqsAdapter>{children}</NuqsAdapter>
+        <AppSplash />
       </body>
     </html>
   );

@@ -691,3 +691,22 @@ body {
 .radar-card-critical {
   border-left: 3px solid var(--color-error);
 }
+
+/* ─── Splash de démarrage — barre de chargement (scaleX, GPU) ──────────── */
+@keyframes splash-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.animate-splash-bar {
+  transform-origin: left center;
+  animation: splash-bar 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-splash-bar {
+    animation-duration: 0.01ms;
+  }
+}
