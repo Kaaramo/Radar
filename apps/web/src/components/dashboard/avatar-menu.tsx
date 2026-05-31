@@ -73,7 +73,7 @@ export function AvatarMenu({ name, email }: AvatarMenuProps) {
       {open ? (
         <div
           role="menu"
-          className="fade-mount absolute right-0 top-full mt-2 w-[260px] origin-top-right overflow-hidden rounded-md border border-navy-700 bg-navy-900 shadow-lg"
+          className="fade-mount absolute right-0 top-full z-[60] mt-2 w-[260px] origin-top-right overflow-hidden rounded-md border border-navy-700 bg-navy-900 shadow-lg"
         >
           <div className="border-b border-navy-700 px-4 py-3">
             <p

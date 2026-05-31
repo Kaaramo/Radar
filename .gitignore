@@ -52,6 +52,7 @@ apps/agent/openclaw-data/flows/
 apps/agent/openclaw-data/identity/
 apps/agent/openclaw-data/subagents/
 apps/agent/openclaw-data/tasks/
+apps/agent/openclaw-data/memory/
 apps/agent/openclaw-data/plugin-skills/
 apps/agent/openclaw-data/update-check.json
 apps/agent/openclaw-data/*.last-good
@@ -86,3 +87,8 @@ packages/database/tmp-*.mjs
 #personal files
 Note_bachirou.md
 CLAUDE.md
+KARAMO.md
+BACHIROU.md
+
+# Claude Code (config locale)
+.claude/

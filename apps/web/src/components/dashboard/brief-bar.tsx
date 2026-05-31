@@ -73,7 +73,7 @@ export function BriefBar({
   }, [onCommandPalette]);
 
   return (
-    <header className="flex h-[60px] shrink-0 items-center gap-6 border-b border-navy-700 bg-navy px-6">
+    <header className="relative z-50 flex h-[60px] shrink-0 items-center gap-6 border-b border-navy-700 bg-navy px-6">
       {/* ── Gauche : logo + breadcrumb ─────────────────────── */}
       <Breadcrumb
         entrepriseName={entrepriseName}

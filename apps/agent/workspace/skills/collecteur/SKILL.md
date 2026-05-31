@@ -20,9 +20,9 @@ Le message contient :
 **Ce paramètre est critique :**
 
 - Si `premierRapport: true` → recherche sur les **30 derniers jours** (freshness: "month" dans web_search)
-- Si `premierRapport: false` → recherche sur les **3 derniers jours** uniquement
+- Si `premierRapport: false` → recherche sur les **7 derniers jours** uniquement
 
-Pour les recherches sur 3 jours, calcule la date d'il y a 3 jours au format YYYY-MM-DD et utilise le paramètre `date_after` dans web_search.
+Pour les recherches sur 7 jours, calcule la date d'il y a 7 jours au format YYYY-MM-DD et utilise le paramètre `date_after` dans web_search.
 
 ## Détection du provider web_search actif
 
@@ -68,7 +68,7 @@ Pour **chaque concurrent** (maximum 5), lance ces recherches web_search en appli
 2. `"[nom concurrent]" nouveau produit lancement annonce`
 3. `"[nom concurrent]" partenariat acquisition levée fonds croissance`
 
-**Si rapport quotidien** (date_after: [date il y a 3 jours], count: 8) :
+**Si rapport hebdomadaire** (date_after: [date il y a 7 jours], count: 8) :
 
 1. `"[nom concurrent]" actualités news`
 2. `"[nom concurrent]" annonce nouveauté`
@@ -101,13 +101,13 @@ Construis un tableau JSON de sources. Chaque source a cette structure :
 }
 ```
 
-## Phase 4 — Filtrage temporel STRICT (rapport quotidien uniquement)
+## Phase 4 — Filtrage temporel STRICT (rapport hebdomadaire uniquement)
 
 Si `premierRapport: false`, exécute cet algorithme **obligatoirement** avant toute persistance :
 
 **Étape 4.1 — Calcul de la date seuil**
-Calcule : date seuil = date du jour moins 3 jours, au format YYYY-MM-DD.
-Exemple : si aujourd'hui est 2026-05-08 → date seuil = 2026-05-05.
+Calcule : date seuil = date du jour moins 7 jours, au format YYYY-MM-DD.
+Exemple : si aujourd'hui est 2026-05-08 → date seuil = 2026-05-01.
 
 **Étape 4.2 — Filtrage source par source**
 Parcours chaque source du tableau et applique cette règle sans exception :
@@ -116,7 +116,7 @@ Parcours chaque source du tableau et applique cette règle sans exception :
 - `datePublication` connue ET >= date seuil → **GARDE** la source
 - `datePublication: null` → **GARDE** la source (date inconnue, bénéfice du doute)
 
-**Aucune exception de pertinence** : une source ancienne "utile pour le contexte" n'a pas sa place dans un rapport quotidien. Supprime-la sans hésitation.
+**Aucune exception de pertinence** : une source ancienne "utile pour le contexte" n'a pas sa place dans un rapport hebdomadaire. Supprime-la sans hésitation.
 
 **Étape 4.3 — Vérification du minimum**
 Après filtrage, si le total restant est inférieur à 3 (cas extrême) : conserve les 3 sources ayant la `datePublication` la plus récente, même si hors délai, pour ne pas bloquer le pipeline.
@@ -128,7 +128,7 @@ Si `premierRapport: true`, aucun filtrage — la période "30 derniers jours" es
 
 ## Persistance
 
-Une fois toutes les sources collectées et filtrées (minimum 10 pour le premier rapport, minimum 3 pour un rapport quotidien), POST vers `/api/internal/sources` :
+Une fois toutes les sources collectées et filtrées (minimum 10 pour le premier rapport, minimum 3 pour un rapport hebdomadaire), POST vers `/api/internal/sources` :
 
 ```json
 {
@@ -156,8 +156,8 @@ Exemple de structure attendue :
 
 ## Règles
 
-- Collecte au minimum 2 sources par concurrent pour le premier rapport, 1 pour un rapport quotidien
-- Si `premierRapport: false` et qu'aucune source récente n'est trouvée sur 3 jours pour un concurrent, signale-le dans ta réponse mais ne bloque pas le pipeline
+- Collecte au minimum 2 sources par concurrent pour le premier rapport, 1 pour un rapport hebdomadaire
+- Si `premierRapport: false` et qu'aucune source récente n'est trouvée sur 7 jours pour un concurrent, signale-le dans ta réponse mais ne bloque pas le pipeline
 - Préfère les sources primaires (site officiel, communiqué de presse) aux sources secondaires (agrégateurs)
 - Si web_fetch retourne un contenu vide ou une erreur 403, passe à l'URL suivante
 - Ne duplique pas les sources (même URL)
