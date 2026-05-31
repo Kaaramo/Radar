@@ -176,8 +176,16 @@ Pour développer l'application web seule (hors Docker) : `pnpm dev` puis http://
 
 ## Équipe
 
-Réalisé par **Karamo Sylla** et **Bachirou Konaté**.
+<div align="center">
 
-**Encadrant :** Pr. Younes Wadiai
-**Cadre :** Module M244 (Veille Technologique), Cycle Ingénieur BDIA, ENSA Tétouan
-**Session :** Printemps 2026
+### Karamo Sylla &nbsp;&nbsp;·&nbsp;&nbsp; Bachirou Konaté
+
+_Binôme — Cycle Ingénieur Big Data & Intelligence Artificielle_
+
+</div>
+
+<br>
+
+> **Encadrant** &nbsp; Pr. Younes Wadiai
+> **Module** &nbsp; M244 · Veille Technologique — ENSA Tétouan
+> **Session** &nbsp; Printemps 2026
