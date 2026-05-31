@@ -48,9 +48,9 @@ export function AppSplash() {
         phase === "leaving" ? "opacity-0" : "opacity-100"
       }`}
     >
-      <div className="flex flex-col items-center gap-5">
-        <RadarWordmarkLight height={44} />
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-soft">
+      <div className="flex flex-col items-center gap-7">
+        <RadarWordmarkLight className="h-auto w-[min(72vw,620px)]" />
+        <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-muted-soft">
           Veille concurrentielle
         </p>
       </div>

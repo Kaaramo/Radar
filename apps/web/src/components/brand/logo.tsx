@@ -17,13 +17,13 @@ export type LogoProps = {
  * Source : Branding/logo/wordmark-light.svg
  */
 export function RadarWordmarkLight({
-  height = 36,
+  height,
   className,
   ariaLabel = "RADAR",
 }: LogoProps) {
   return (
     <svg
-      height={height}
+      {...(height !== undefined ? { height } : {})}
       viewBox="0 0 280 64"
       fill="none"
       role="img"
