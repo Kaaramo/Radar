@@ -1,4 +1,4 @@
-import { getDashboardData, getRapportDetail } from "@/lib/dashboard/queries";
+import { getKanbanData, getRapportDetail } from "@/lib/dashboard/queries";
 import { getOnboardingState } from "@/lib/onboarding/state";
 
 import { DashboardClient } from "./dashboard-client";
@@ -29,7 +29,7 @@ export default async function DashboardPage({
   const openRapportId = typeof params.r === "string" ? params.r : null;
 
   const [data, openRapport] = await Promise.all([
-    getDashboardData(state.userId),
+    getKanbanData(state.userId),
     openRapportId ? getRapportDetail(openRapportId, state.userId) : null,
   ]);
 

@@ -68,7 +68,7 @@ const progresse = (etape, progressionPct) =>
  * le texte de la réponse de l'agent (qui contient sa prose + ses blocs JSON,
  * et l'agent s'est déjà auto-posté sur /api/internal le cas échéant).
  */
-async function runAgent(stage, message, model) {
+async function runAgent(stage, message, model, timeoutS = 600) {
   log(`→ étape ${stage} (openclaw agent${model ? " · " + model : ""})…`);
   try {
     const args = [
@@ -78,20 +78,28 @@ async function runAgent(stage, message, model) {
       "--session-key",
       `agent:main:cycle-${rapportId}-${stage}`,
       "--timeout",
-      "600",
+      String(timeoutS),
     ];
-    // Override modèle pour les étapes lourdes (évaluateur) → modèle rapide.
+    // Override modèle pour les étapes lourdes (évaluateur, rédacteur) → rapide.
     if (model) args.push("--model", model);
     args.push("--message", message);
+    // execFileAsync est tué `timeoutS + 60s` après le lancement : ceinture-
+    // bretelles si l'agent ne rend jamais la main (cas rédacteur sur longue
+    // génération). On capture alors stdout partiel via e.stdout.
     const { stdout } = await execFileAsync("openclaw", args, {
-      timeout: 660_000,
+      timeout: (timeoutS + 60) * 1000,
       maxBuffer: 50 * 1024 * 1024,
     });
     log(`← étape ${stage} terminée (${stdout.length} c)`);
     return stdout;
   } catch (e) {
-    log(`✗ étape ${stage} ERR ${String(e.message).slice(0, 200)}`);
-    return "";
+    // Timeout / erreur : on récupère le stdout partiel s'il existe (souvent la
+    // synthèse est déjà générée, seul le retour de process a calé).
+    const partial = e && e.stdout ? String(e.stdout) : "";
+    log(
+      `✗ étape ${stage} ERR ${String(e.message).slice(0, 160)} (partiel ${partial.length} c)`,
+    );
+    return partial;
   }
 }
 
@@ -143,15 +151,25 @@ async function main() {
     `Tu es l'ANALYSTE SWOT RADAR (skill analyste-swot). rapportId: ${rapportId}. profilUtilisateur: ${profilTxt}. Sources evaluees:\n${sourcesCtx}\nanalysePESTEL:\n${(pestel || "").slice(0, 8000)}\nsignauxFaibles:\n${(signaux || "").slice(0, 6000)}\n${note}`,
   );
 
-  // 6) Rédacteur (rend du Markdown — c'est NOUS qui postons /rapport/termine)
+  // 6) Rédacteur — sur modèle RAPIDE (flash) + prompt CONCIS + timeout court :
+  // la génération Markdown longue sur le modèle « pro » calait sans rendre la
+  // main, bloquant toute la file. Concision = fiabilité.
   await progresse("Rédaction de la synthèse", 90);
   const synthese = await runAgent(
     "redacteur",
-    `Tu es le REDACTEUR RADAR (skill redacteur). rapportId: ${rapportId}. profilUtilisateur: ${profilTxt}. pestel:\n${(pestel || "").slice(0, 6000)}\nsignaux:\n${(signaux || "").slice(0, 4000)}\nswot:\n${(swot || "").slice(0, 8000)}\nsources (resume): ${concurrent}. Produis le rapport Markdown complet (6 sections) selon ton SKILL.`,
+    `Tu es le REDACTEUR RADAR (skill redacteur). rapportId: ${rapportId}. profilUtilisateur: ${profilTxt}. pestel:\n${(pestel || "").slice(0, 4000)}\nsignaux:\n${(signaux || "").slice(0, 3000)}\nswot:\n${(swot || "").slice(0, 5000)}\nconcurrent: ${concurrent}. Produis une SYNTHESE Markdown CONCISE (5 sections max, ~600-800 mots, titres en ##). Rends UNIQUEMENT le markdown final, sans préambule.`,
+    "deepseek/deepseek-v4-flash",
+    300,
   );
 
-  const syntheseClean = (synthese || "").trim();
-  if (syntheseClean.length > 20) {
+  // Nettoie un éventuel préambule avant le premier titre Markdown.
+  let syntheseClean = (synthese || "").trim();
+  const hashIdx = syntheseClean.startsWith("#")
+    ? 0
+    : syntheseClean.indexOf("\n#");
+  if (hashIdx > 0) syntheseClean = syntheseClean.slice(hashIdx + 1).trim();
+
+  if (syntheseClean.length > 60) {
     await postInternal("rapport/termine", {
       rapportId,
       synthese: syntheseClean.slice(0, 49000),

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { AppSidebar, type AppSidebarProps } from "./app-sidebar";
 import { BriefBar, type BriefBarProps } from "./brief-bar";
+import { SidebarCollapseProvider, SidebarReopenTab } from "./sidebar-collapse";
 
 export type AppShellProps = {
   children: ReactNode;
@@ -32,14 +33,19 @@ export function AppShell({
   overlay,
 }: AppShellProps) {
   return (
-    <div className="flex h-dvh w-full flex-col overflow-hidden bg-navy">
-      <BriefBar {...briefBarProps} />
-      <div className="flex min-h-0 flex-1">
-        <AppSidebar {...sidebarProps} />
-        <main className="flex min-w-0 flex-1 overflow-hidden">{children}</main>
-        {contextPanel}
+    <SidebarCollapseProvider>
+      <div className="flex h-dvh w-full flex-col overflow-hidden bg-navy">
+        <BriefBar {...briefBarProps} />
+        <div className="relative flex min-h-0 flex-1">
+          <AppSidebar {...sidebarProps} />
+          <SidebarReopenTab />
+          <main className="flex min-w-0 flex-1 overflow-hidden">
+            {children}
+          </main>
+          {contextPanel}
+        </div>
+        {overlay}
       </div>
-      {overlay}
-    </div>
+    </SidebarCollapseProvider>
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   Building2,
@@ -6,6 +8,7 @@ import {
   Globe2,
   History,
   LayoutDashboard,
+  PanelLeftClose,
   Radar,
   Settings,
   ShieldCheck,
@@ -13,6 +16,8 @@ import {
 } from "lucide-react";
 
 import type { CycleState } from "@/lib/dashboard/queries";
+
+import { useSidebarCollapse } from "./sidebar-collapse";
 
 /**
  * Item actif de la sidebar — supporte les 8 pages + paramètres.
@@ -135,91 +140,121 @@ export function AppSidebar({
   movementCount = 0,
   weakSignalCount = 0,
 }: AppSidebarProps) {
+  const { collapsed, ready, toggle } = useSidebarCollapse();
+
   // Normalisation des clés legacy → nouvelles clés
   const normalizedActive: AppActiveKey =
     active === "dashboard" ? "brief" : (active as AppActiveKey);
 
   return (
-    <aside className="flex h-full w-[220px] shrink-0 flex-col overflow-y-auto border-r border-navy-700 bg-navy py-4">
-      <div className="flex-1 px-3">
-        {/* AUJOURD'HUI — le quotidien actionnable */}
-        <SectionLabel>Aujourd&apos;hui</SectionLabel>
-        <nav className="flex flex-col gap-px">
-          <NavItem
-            href="/dashboard"
-            icon={LayoutDashboard}
-            label="Brief"
-            isActive={normalizedActive === "brief"}
-            count={movementCount}
-            countTone="teal"
-          />
-          <NavItem
-            href="/weak-signals"
-            icon={Radar}
-            label="Signaux faibles"
-            isActive={normalizedActive === "weak-signals"}
-            count={weakSignalCount}
-            countTone="safran"
-          />
-        </nav>
+    <aside
+      data-collapsed={collapsed}
+      className={`relative h-full shrink-0 overflow-hidden bg-navy ease-out motion-reduce:transition-none ${
+        ready ? "transition-[width,border-color] duration-300" : ""
+      } ${collapsed ? "w-0 border-transparent" : "w-[220px] border-r border-navy-700"}`}
+    >
+      {/* Contenu en largeur fixe : l'aside se réduit en le rognant (clip),
+          le contenu ne se reflow donc jamais pendant l'animation. */}
+      <div
+        aria-hidden={collapsed}
+        className={`flex h-full w-[220px] flex-col overflow-y-auto py-4 ease-out motion-reduce:transition-none ${
+          ready ? "transition-opacity duration-200" : ""
+        } ${collapsed ? "pointer-events-none opacity-0" : "opacity-100"}`}
+      >
+        {/* En-tête : bouton de masquage (chevron) aligné à droite */}
+        <div className="mb-1 flex items-center justify-end px-3">
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label="Masquer la navigation (⌘B)"
+            title="Masquer la navigation (⌘B)"
+            tabIndex={collapsed ? -1 : 0}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-soft transition-colors duration-150 ease-out hover:bg-navy-900 hover:text-bone"
+          >
+            <PanelLeftClose size={16} strokeWidth={1.6} />
+          </button>
+        </div>
 
-        {/* ANALYSE — exploration profonde */}
-        <SectionLabel>Analyse</SectionLabel>
-        <nav className="flex flex-col gap-px">
-          <NavItem
-            href="/competitors"
-            icon={Building2}
-            label="Concurrents"
-            isActive={normalizedActive === "competitors"}
-          />
-          <NavItem
-            href="/swot"
-            icon={Compass}
-            label="SWOT"
-            isActive={normalizedActive === "swot"}
-          />
-          <NavItem
-            href="/pestel"
-            icon={Globe2}
-            label="PESTEL"
-            isActive={normalizedActive === "pestel"}
-          />
-        </nav>
+        <div className="flex-1 px-3">
+          {/* AUJOURD'HUI — le quotidien actionnable */}
+          <SectionLabel>Aujourd&apos;hui</SectionLabel>
+          <nav className="flex flex-col gap-px">
+            <NavItem
+              href="/dashboard"
+              icon={LayoutDashboard}
+              label="Brief"
+              isActive={normalizedActive === "brief"}
+              count={movementCount}
+              countTone="teal"
+            />
+            <NavItem
+              href="/weak-signals"
+              icon={Radar}
+              label="Signaux faibles"
+              isActive={normalizedActive === "weak-signals"}
+              count={weakSignalCount}
+              countTone="safran"
+            />
+          </nav>
 
-        {/* LIVRABLES — ce qu'on extrait du produit */}
-        <SectionLabel>Livrables</SectionLabel>
-        <nav className="flex flex-col gap-px">
+          {/* ANALYSE — exploration profonde */}
+          <SectionLabel>Analyse</SectionLabel>
+          <nav className="flex flex-col gap-px">
+            <NavItem
+              href="/competitors"
+              icon={Building2}
+              label="Concurrents"
+              isActive={normalizedActive === "competitors"}
+            />
+            <NavItem
+              href="/swot"
+              icon={Compass}
+              label="SWOT"
+              isActive={normalizedActive === "swot"}
+            />
+            <NavItem
+              href="/pestel"
+              icon={Globe2}
+              label="PESTEL"
+              isActive={normalizedActive === "pestel"}
+            />
+          </nav>
+
+          {/* LIVRABLES — ce qu'on extrait du produit */}
+          <SectionLabel>Livrables</SectionLabel>
+          <nav className="flex flex-col gap-px">
+            <NavItem
+              href="/reports"
+              icon={FileText}
+              label="Rapports"
+              isActive={normalizedActive === "reports"}
+            />
+            <NavItem
+              href="/cycles"
+              icon={History}
+              label="Cycles"
+              isActive={normalizedActive === "cycles"}
+              italic={cycleState === "running" ? "En cours" : null}
+            />
+          </nav>
+        </div>
+
+        {/* Paramètres — divider hairline + item */}
+        <div className="px-3 pb-1">
+          <div className="my-3 h-px bg-navy-700" />
           <NavItem
-            href="/reports"
-            icon={FileText}
-            label="Rapports"
-            isActive={normalizedActive === "reports"}
+            href="/settings"
+            icon={Settings}
+            label="Paramètres"
+            isActive={normalizedActive === "settings"}
           />
-          <NavItem
-            href="/cycles"
-            icon={History}
-            label="Cycles"
-            isActive={normalizedActive === "cycles"}
-            italic={cycleState === "running" ? "En cours" : null}
-          />
-        </nav>
+        </div>
+
+        {/* Avoid unused import warning */}
+        <span aria-hidden="true" className="hidden">
+          <ShieldCheck size={0} />
+        </span>
       </div>
-
-      {/* Paramètres — divider hairline + item */}
-      <div className="px-3 pb-1">
-        <div className="my-3 h-px bg-navy-700" />
-        <NavItem
-          href="/settings"
-          icon={Settings}
-          label="Paramètres"
-          isActive={normalizedActive === "settings"}
-        />
-      </div>
-
-      {/* Avoid unused import warning */}
-      <span aria-hidden="true" className="hidden">
-        <ShieldCheck size={0} />
-      </span>
     </aside>
   );
 }

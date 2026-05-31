@@ -57,7 +57,7 @@ export async function POST(request: Request) {
           craapAuthority: s.craapAuthority,
           craapAccuracy: s.craapAccuracy,
           craapPurpose: s.craapPurpose,
-          craapTotal: s.craapTotal,
+          craapTotal: totalCraap(s),
         })),
       }),
     ]);
@@ -77,4 +77,30 @@ function safeDate(value: string | null | undefined): Date | null {
   if (!value) return null;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Score CRAAP total déterministe = somme des 5 dimensions (/50). On NE fait PAS
+ * confiance au `craapTotal` du LLM (souvent incohérent). On le recalcule dès que
+ * les 5 dimensions sont présentes ; sinon on retombe sur la valeur fournie.
+ */
+function totalCraap(s: {
+  craapCurrency?: number | null;
+  craapRelevance?: number | null;
+  craapAuthority?: number | null;
+  craapAccuracy?: number | null;
+  craapPurpose?: number | null;
+  craapTotal?: number | null;
+}): number | null {
+  const dims = [
+    s.craapCurrency,
+    s.craapRelevance,
+    s.craapAuthority,
+    s.craapAccuracy,
+    s.craapPurpose,
+  ];
+  if (dims.every((d) => typeof d === "number")) {
+    return (dims as number[]).reduce((a, b) => a + b, 0);
+  }
+  return s.craapTotal ?? null;
 }

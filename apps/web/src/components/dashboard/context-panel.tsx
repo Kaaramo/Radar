@@ -1,15 +1,18 @@
 "use client";
 
 import {
-  ExternalLink,
+  SquareArrowOutUpRight as ExternalLink,
   FileText,
   Globe,
   MousePointerClick,
   X,
 } from "lucide-react";
 
-import { SwotGrid } from "@/components/dashboard/swot-grid";
-import { craapColor } from "@/lib/dashboard/axe-tokens";
+import Link from "next/link";
+
+import { SwotAccordion } from "@/components/dashboard/swot-accordion";
+import { CraapBadge, CraapLegend } from "@/components/dashboard/craap-badge";
+import { MarkdownView } from "@/components/dashboard/markdown-view";
 import type { RapportDetail, RapportStatut } from "@/lib/dashboard/types";
 
 export type ContextPanelProps = {
@@ -21,6 +24,7 @@ const STATUT_LABEL: Record<RapportStatut, { label: string; color: string }> = {
   EN_ATTENTE: { label: "En file", color: "var(--color-muted-soft)" },
   EN_COURS: { label: "En cours", color: "var(--color-royal-light)" },
   TERMINE: { label: "Terminé", color: "var(--color-success)" },
+  INTERROMPU: { label: "Interrompu", color: "var(--color-warning)" },
   ECHEC: { label: "Échec", color: "var(--color-error)" },
 };
 
@@ -110,12 +114,16 @@ function SelectedState({
         ) : null}
       </div>
 
-      {/* Synthèse */}
+      {/* Synthèse (rendu Markdown) */}
       {r.synthese ? (
         <Section label="Synthèse">
-          <p className="whitespace-pre-line text-[13px] leading-[1.6] text-muted">
-            {r.synthese}
-          </p>
+          <MarkdownView markdown={r.synthese} />
+          <Link
+            href={`/reports/${r.id}`}
+            className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-royal transition-colors hover:text-royal-light"
+          >
+            Ouvrir le rapport complet →
+          </Link>
         </Section>
       ) : null}
 
@@ -144,14 +152,7 @@ function SelectedState({
                     {s.domain}
                   </div>
                 </div>
-                {s.craapTotal !== null ? (
-                  <span
-                    className="font-mono text-[11.5px] font-semibold tabular-nums"
-                    style={{ color: craapColor(s.craapTotal) }}
-                  >
-                    {s.craapTotal.toFixed(1)}
-                  </span>
-                ) : null}
+                <CraapBadge total={s.craapTotal} />
                 <ExternalLink
                   size={12}
                   strokeWidth={1.6}
@@ -160,13 +161,14 @@ function SelectedState({
               </a>
             ))}
           </div>
+          <CraapLegend />
         </Section>
       ) : null}
 
-      {/* SWOT */}
+      {/* SWOT — accordéon déroulant (panneau étroit) */}
       {r.swot ? (
         <Section label="Analyse SWOT">
-          <SwotGrid swot={r.swot} />
+          <SwotAccordion swot={r.swot} />
         </Section>
       ) : null}
 

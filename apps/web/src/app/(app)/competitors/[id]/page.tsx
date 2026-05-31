@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/dashboard/app-shell";
-import { SwotGrid } from "@/components/dashboard/swot-grid";
+import { SwotMatrix } from "@/components/dashboard/swot-matrix";
 import { craapColor } from "@/lib/dashboard/axe-tokens";
 import {
   getCompetitor,
@@ -234,7 +234,7 @@ function SwotTab({ rapport }: { rapport: RapportDetail }) {
         <ShieldCheck size={11} strokeWidth={1.6} />
         <span>Synthèse SWOT · {rapport.termineLe ?? rapport.createdAt}</span>
       </div>
-      <SwotGrid swot={rapport.swot} />
+      <SwotMatrix swot={rapport.swot} />
     </div>
   );
 }

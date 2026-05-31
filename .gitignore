@@ -57,6 +57,7 @@ apps/agent/openclaw-data/update-check.json
 apps/agent/openclaw-data/*.last-good
 apps/agent/workspace/.openclaw/
 apps/agent/workspace/reports/
+apps/agent/workspace/rapports/
 apps/agent/workspace/AGENTS.md
 apps/agent/workspace/BOOTSTRAP.md
 apps/agent/workspace/HEARTBEAT.md

@@ -7,7 +7,11 @@ import { redirect } from "next/navigation";
 import { prisma } from "@radar/database";
 
 import { auth } from "@/lib/auth/auth";
-import { triggerOpenClawCycle } from "@/lib/agents/openclaw-client";
+import {
+  triggerOpenClawCycle,
+  triggerOpenClawWeek,
+  type WeekBatchItem,
+} from "@/lib/agents/openclaw-client";
 
 /**
  * Server Actions du dashboard — branchées sur Prisma + OpenClaw.
@@ -135,58 +139,144 @@ export async function launchCycle(): Promise<DashboardActionResult> {
 
   const premierRapport = rapportsCount === 0;
 
-  // 1 Rapport par concurrent (cf. schema : « 1 cycle = 1 rapport par concurrent »)
-  let triggered = 0;
+  // 1 Rapport par concurrent (« 1 cycle = 1 rapport par concurrent »), créés
+  // tous EN_ATTENTE (colonne « Programmé » du Kanban).
+  const items: WeekBatchItem[] = [];
   const errors: string[] = [];
   for (const concurrent of concurrents) {
-    let rapport;
     try {
-      rapport = await prisma.rapport.create({
+      const rapport = await prisma.rapport.create({
         data: {
           userId,
           concurrentId: concurrent.id,
           statut: "EN_ATTENTE",
-          etape: "demarrage",
+          etape: "En file",
           progressionPct: 0,
         },
       });
+      items.push({
+        rapportId: rapport.id,
+        concurrentNom: concurrent.nom,
+        concurrentSite: concurrent.siteWeb ?? "",
+      });
     } catch (err) {
       errors.push(`${concurrent.nom} (BDD) : ${errMsg(err)}`);
-      continue;
-    }
-
-    const res = await triggerOpenClawCycle({
-      rapportId: rapport.id,
-      entreprise: profil.nomEntreprise,
-      secteur: profil.secteur ?? "",
-      concurrentNom: concurrent.nom,
-      concurrentSite: concurrent.siteWeb ?? "",
-      premierRapport,
-    });
-
-    if (res.ok) {
-      triggered += 1;
-    } else {
-      errors.push(`${concurrent.nom} (OpenClaw) : ${res.error ?? "inconnu"}`);
-      // Le rapport reste EN_ATTENTE ; un retry pourra le relancer.
     }
   }
 
   revalidatePath("/dashboard");
 
-  if (triggered === 0) {
+  if (items.length === 0) {
     return {
       success: false,
-      error: `Aucun cycle n'a pu démarrer. ${errors.slice(0, 2).join(" · ")}`,
+      error: `Aucun cycle créé. ${errors.slice(0, 2).join(" · ")}`,
     };
   }
+
+  // Un SEUL déclenchement : l'orchestrateur traite les concurrents EN FILE.
+  const res = await triggerOpenClawWeek({
+    entreprise: profil.nomEntreprise,
+    secteur: profil.secteur ?? "",
+    premierRapport,
+    items,
+  });
+
+  if (!res.ok) {
+    return {
+      success: false,
+      error: `Veille non démarrée : ${res.error ?? "OpenClaw indisponible"}`,
+    };
+  }
+
   return {
     success: true,
-    message:
-      errors.length > 0
-        ? `${triggered} cycle(s) lancé(s), ${errors.length} en échec.`
-        : `${triggered} cycle(s) de veille lancé(s) en arrière-plan.`,
+    message: `Veille hebdomadaire lancée : ${items.length} concurrent${
+      items.length > 1 ? "s" : ""
+    } traité${items.length > 1 ? "s" : ""} l'un après l'autre.`,
   };
+}
+
+/* ── Relance / clôture d'un rapport ───────────────────────────────────────── */
+
+/**
+ * Relance un rapport (interrompu/zombie ou en échec) : réinitialise son état et
+ * redéclenche l'orchestrateur sur le MÊME rapportId (callbacks idempotents → pas
+ * de doublon). Pas d'anti-spam ici (relance manuelle, intentionnelle).
+ */
+export async function relancerRapport(
+  rapportId: string,
+): Promise<DashboardActionResult> {
+  const userId = await requireUserId();
+
+  const [rapport, profil] = await Promise.all([
+    prisma.rapport.findFirst({
+      where: { id: rapportId, userId },
+      include: { concurrent: true },
+    }),
+    prisma.profilUtilisateur.findUnique({ where: { userId } }),
+  ]);
+
+  if (!rapport) return { success: false, error: "Rapport introuvable." };
+  if (!profil) {
+    return {
+      success: false,
+      error: "Profil introuvable. Terminez l'onboarding.",
+    };
+  }
+
+  await prisma.rapport.update({
+    where: { id: rapportId },
+    data: {
+      statut: "EN_ATTENTE",
+      progressionPct: 0,
+      etape: "demarrage",
+      erreur: null,
+      termineLe: null,
+    },
+  });
+
+  const res = await triggerOpenClawCycle({
+    rapportId,
+    entreprise: profil.nomEntreprise,
+    secteur: profil.secteur ?? "",
+    concurrentNom: rapport.concurrent.nom,
+    concurrentSite: rapport.concurrent.siteWeb ?? "",
+    premierRapport: true,
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/cycles");
+
+  if (!res.ok) {
+    return {
+      success: false,
+      error: res.error ?? "Lancement OpenClaw impossible.",
+    };
+  }
+  return { success: true, message: "Cycle relancé." };
+}
+
+/**
+ * Clôture manuellement un rapport interrompu (le marque ECHEC) sans le relancer.
+ */
+export async function marquerRapportEchec(
+  rapportId: string,
+): Promise<DashboardActionResult> {
+  const userId = await requireUserId();
+  try {
+    await prisma.rapport.updateMany({
+      where: { id: rapportId, userId },
+      data: {
+        statut: "ECHEC",
+        erreur: "Cycle interrompu (clôturé manuellement).",
+      },
+    });
+  } catch (err) {
+    return { success: false, error: errMsg(err) };
+  }
+  revalidatePath("/dashboard");
+  revalidatePath("/cycles");
+  return { success: true };
 }
 
 /* ── Préférences de notification ──────────────────────────────────────────── */
