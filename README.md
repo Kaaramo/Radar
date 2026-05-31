@@ -132,7 +132,7 @@ Le pipeline agent et l'application web sont fonctionnels et connectés. Un premi
 | Base          | PostgreSQL 17 + Prisma 6                                             |
 | Contrats      | Zod (`@radar/contracts`)                                             |
 | Design        | Radar Editorial : Navy `#051C2C`, Royal Blue `#2251FF`, Bone         |
-| Infra V1      | Docker Compose (postgres + openclaw + web), VPS Hetzner CX21         |
+| Infra V1      | Docker Compose en local (postgres + openclaw + web)                  |
 
 ---
 
@@ -176,10 +176,7 @@ Pour développer l'application web seule (hors Docker) : `pnpm dev` puis http://
 
 ## Équipe
 
-| Auteur              | Périmètre                                                                                        |
-| ------------------- | ------------------------------------------------------------------------------------------------ |
-| **Karamo Sylla**    | `apps/web` · `packages/database` · `packages/contracts` · `packages/ui` · charte Radar Editorial |
-| **Bachirou Konaté** | `apps/agent` (compétences OpenClaw) · `infra/` · configuration Docker                            |
+Réalisé par **Karamo Sylla** et **Bachirou Konaté**.
 
 **Encadrant :** Pr. Younes Wadiai
 **Cadre :** Module M244 (Veille Technologique), Cycle Ingénieur BDIA, ENSA Tétouan
