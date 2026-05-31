@@ -42,10 +42,14 @@ export const RapportProgresseEventSchema = z
 export type RapportProgresseEvent = z.infer<typeof RapportProgresseEventSchema>;
 
 // POST /api/internal/rapport/termine
-// Émis par l'agent rédacteur à la fin du cycle.
+// Émis par l'agent rédacteur (via run-cycle.mjs) à la fin du cycle.
 
+// `type` toléré absent : run-cycle.mjs poste { rapportId, synthese } sans
+// `type`. Sans `.optional()`, chaque POST de fin échouait en 400 et le rapport
+// restait figé à EN_COURS 90% (synthèse jamais persistée). Cohérent avec les
+// autres schémas (progresse/swot/signaux).
 export const RapportTermineEventSchema = z.object({
-  type: z.literal("rapport.termine"),
+  type: z.literal("rapport.termine").optional(),
   rapportId: z.string().uuid(),
   synthese: z.string().min(1).max(50000),
 });
@@ -56,7 +60,7 @@ export type RapportTermineEvent = z.infer<typeof RapportTermineEventSchema>;
 // Émis par l'orchestrateur en cas d'échec irrécupérable.
 
 export const RapportEchecEventSchema = z.object({
-  type: z.literal("rapport.echec"),
+  type: z.literal("rapport.echec").optional(),
   rapportId: z.string().uuid(),
   erreur: z.string().min(1).max(5000),
 });
