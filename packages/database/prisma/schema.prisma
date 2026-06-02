@@ -1,0 +1,478 @@
+// schema Prisma — RADAR
+// Source de vérité du modèle de données du produit.
+// Généré par @radar/database, importé par @radar/web et le service OpenClaw (apps/agent).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")  // Pooler URL (PgBouncer) pour le runtime
+  directUrl = env("DIRECT_URL")    // Direct URL pour les migrations (Neon recommandation)
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Identité utilisateur — peuplée par Better Auth (apps/web/src/lib/auth/auth.ts)
+// Champs requis Better Auth : id, email, emailVerified, name, image, createdAt, updatedAt
+// + relations Session, Account, et nos relations métier (ProfilUtilisateur, Concurrent, Rapport)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  name          String
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations Better Auth
+  sessions      Session[]
+  accounts      Account[]
+
+  // Relations métier RADAR
+  profil          ProfilUtilisateur?
+  concurrents     Concurrent[]
+  rapports        Rapport[]
+  cycles          VeilleCycle[]
+  weakSignals     WeakSignal[]
+  notifPreference NotificationPreference?
+
+  @@map("user")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Session — Better Auth
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Account — Better Auth (lien OAuth provider ou credentials password)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Account {
+  id                    String    @id @default(uuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Verification — Better Auth (tokens email verification + password reset)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Profil entreprise de l'utilisateur (alimenté par l'agent deep-research)
+// Cf. KARAMO.md — passé à l'orchestrateur à chaque cycle de veille.
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum EnrichissementStatut {
+  IDLE        // jamais lancé
+  IN_PROGRESS // en cours côté OpenAI Responses API (background mode)
+  SUCCESS     // enrichissement disponible (structured ou raw-fallback)
+  FAILED      // dernier run a échoué — voir enrichissementErreur
+}
+
+model ProfilUtilisateur {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  nomEntreprise  String
+  siteWeb        String?
+  secteur        String?
+  description    String?  @db.Text
+  produits       String[]
+  marches        String[]
+  positionnement String?  @db.Text
+
+  // Sprint 02 — Onboarding
+  axes                 String[]   // sous-ensemble de AXES_KEYS (cf. validators/onboarding.ts)
+  onboardingCompleteLe DateTime?
+
+  // Sprint 02 — Deep Research enrichment (skill `apps/web/src/lib/skills/deep-research/`)
+  // JSONB libre versionné via `enrichissementVer`. Re-roulable au cron si on change le prompt.
+  enrichissement         Json?
+  enrichissementLe       DateTime?
+  enrichissementVer      String?
+  enrichissementStatut   EnrichissementStatut @default(IDLE)
+  enrichissementErreur   String?              @db.Text
+  enrichissementStartedAt DateTime?           // heartbeat anti-zombie (>5min IN_PROGRESS = bloqué)
+
+  creeLe         DateTime @default(now())
+  majLe          DateTime @updatedAt
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Concurrents suivis par l'utilisateur
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Concurrent {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  nom       String
+  siteWeb   String?
+  notes     String?  @db.Text
+  secteur   String?
+  taille    String?  // ex "1000-5000"
+  ville     String?
+  fondeeEn  Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rapports     Rapport[]
+  mouvements   Mouvement[]
+  swots        SwotSnapshot[]
+
+  @@index([userId])
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// VeilleCycle — un cycle quotidien à 6h (sprint 04 : créé par cron OpenClaw)
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum CycleStatut {
+  EN_ATTENTE
+  EN_COURS
+  TERMINE
+  ECHEC
+}
+
+model VeilleCycle {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  statut          CycleStatut @default(EN_ATTENTE)
+  etapeCourante   String?     // ex "Analyse SWOT"
+  etapeNumero     Int?        // 1..5
+  progressionPct  Int         @default(0)
+  erreur          String?     @db.Text
+
+  startedAt       DateTime    @default(now())
+  endedAt         DateTime?
+
+  mouvements      Mouvement[]
+  swots           SwotSnapshot[]
+
+  @@index([userId, startedAt(sort: Desc)])
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Mouvement — le coeur du dashboard. 1 cycle = N mouvements détectés
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum MouvementStatut {
+  NEW
+  VIEWED
+  SAVED
+  IGNORED
+}
+
+enum Axe {
+  RH
+  STRATEGIE
+  TECH
+  DIGITAL
+  REGLEMENTAIRE
+}
+
+model Mouvement {
+  id            String          @id @default(uuid())
+  cycleId       String
+  cycle         VeilleCycle     @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  concurrentId  String
+  concurrent    Concurrent      @relation(fields: [concurrentId], references: [id], onDelete: Cascade)
+
+  axe           Axe
+  titre         String
+  extrait       String          @db.Text
+  craapScore    Float           // moyenne des sources
+  valid         Boolean         @default(false) // ≥ 2 sources distinctes
+  critique      Boolean         @default(false) // axes Strategie ou Reglementaire + score >= 8
+
+  statut        MouvementStatut @default(NEW)
+  viewedAt      DateTime?
+  savedAt       DateTime?
+  ignoredAt     DateTime?
+
+  createdAt     DateTime        @default(now())
+
+  sources       MouvementSource[]
+
+  @@index([cycleId, axe])
+  @@index([concurrentId, createdAt(sort: Desc)])
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// MouvementSource — source web avec grille CRAAP par dimension (M244 chap 3)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model MouvementSource {
+  id            String      @id @default(uuid())
+  mouvementId   String
+  mouvement     Mouvement   @relation(fields: [mouvementId], references: [id], onDelete: Cascade)
+
+  url           String
+  domain        String
+  titre         String?
+  extrait       String?     @db.Text
+  publieeLe     DateTime?
+
+  // Grille CRAAP — score 1-10 par dimension
+  craapCurrency  Int
+  craapRelevance Int
+  craapAuthority Int
+  craapAccuracy  Int
+  craapPurpose   Int
+  craapTotal     Float       // moyenne arithmétique
+
+  collecteeLe   DateTime    @default(now())
+
+  @@index([mouvementId])
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// SwotSnapshot — 1 par concurrent par cycle. Mis à jour quotidiennement.
+// ──────────────────────────────────────────────────────────────────────────────
+
+model SwotSnapshot {
+  id            String      @id @default(uuid())
+  concurrentId  String
+  concurrent    Concurrent  @relation(fields: [concurrentId], references: [id], onDelete: Cascade)
+  cycleId       String
+  cycle         VeilleCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  snapshotDate  DateTime    @default(now())
+  strengths     String[]
+  weaknesses    String[]
+  opportunities String[]
+  threats       String[]
+
+  @@index([concurrentId, snapshotDate(sort: Desc)])
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// WeakSignal — signaux faibles détectés par croisement (M244 chap 1)
+// Fenêtre glissante 30 jours, expirent automatiquement
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum SignalIntensite {
+  STRONG
+  MEDIUM
+  WEAK
+}
+
+enum SignalHorizon {
+  SHORT
+  MEDIUM
+  LONG
+}
+
+model WeakSignal {
+  id              String          @id @default(uuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  intitule        String
+  description     String          @db.Text
+  intensite       SignalIntensite
+  horizon         SignalHorizon
+
+  concurrentNoms  String[]        // dénormalisé pour affichage rapide
+  sourceCount     Int             @default(0)
+  axesImpliques   String[]        // sous-ensemble de Axe[]
+
+  detecteLe       DateTime        @default(now())
+  expireLe        DateTime?       // détection auto +30j
+
+  @@index([userId, detecteLe(sort: Desc)])
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// NotificationPreference — réglée via la modale J0
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum DigestFrequency {
+  DAILY
+  WEEKLY
+  NEVER
+}
+
+model NotificationPreference {
+  id                    String          @id @default(uuid())
+  userId                String          @unique
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  digestFrequency       DigestFrequency @default(DAILY)
+  emailDigest           String          // peut différer de User.email
+  criticalAlertsOnly    Boolean         @default(true)
+  configuredAt          DateTime?
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Rapport de veille (1 cycle = 1 rapport par concurrent)
+// État de progression poussé par OpenClaw via /api/internal/rapport/progresse
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum StatutRapport {
+  EN_ATTENTE
+  EN_COURS
+  TERMINE
+  ECHEC
+}
+
+model Rapport {
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concurrentId   String
+  concurrent     Concurrent    @relation(fields: [concurrentId], references: [id], onDelete: Cascade)
+
+  statut         StatutRapport @default(EN_ATTENTE)
+  progressionPct Int           @default(0)
+  etape          String?
+  erreur         String?       @db.Text
+  synthese       String?       @db.Text
+
+  sources        Source[]
+  swot           Swot?
+  pestel         Pestel?
+  signaux        SignalFaible[]
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  termineLe      DateTime?
+
+  @@index([userId, createdAt])
+  @@index([concurrentId, createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Source collectée + score CRAAP (cf. M244 chapitre 3)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Source {
+  id          String   @id @default(uuid())
+  rapportId   String
+  rapport     Rapport  @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+
+  url         String
+  titre       String?
+  extrait     String?  @db.Text
+  publieeLe   DateTime?
+
+  // Grille CRAAP — score 0-10 par dimension
+  craapCurrency  Int?
+  craapRelevance Int?
+  craapAuthority Int?
+  craapAccuracy  Int?
+  craapPurpose   Int?
+  craapTotal     Int?
+
+  collecteeLe DateTime @default(now())
+
+  @@index([rapportId])
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Analyse SWOT (1 par rapport)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Swot {
+  id            String   @id @default(uuid())
+  rapportId     String   @unique
+  rapport       Rapport  @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+
+  strengths     String[]
+  weaknesses    String[]
+  opportunities String[]
+  threats       String[]
+
+  createdAt     DateTime @default(now())
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Analyse PESTEL (1 par rapport, hebdomadaire à l'échelle sectorielle en V2)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Pestel {
+  id            String   @id @default(uuid())
+  rapportId     String   @unique
+  rapport       Rapport  @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+
+  political     String[]
+  economic      String[]
+  social        String[]
+  technological String[]
+  environmental String[]
+  legal         String[]
+
+  createdAt     DateTime @default(now())
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Signal faible (détection algorithmique, fenêtre 30 jours glissants)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model SignalFaible {
+  id          String   @id @default(uuid())
+  rapportId   String
+  rapport     Rapport  @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+
+  intitule    String
+  description String?  @db.Text
+  scorePertinence Int?
+
+  detecteLe   DateTime @default(now())
+
+  @@index([rapportId])
+}

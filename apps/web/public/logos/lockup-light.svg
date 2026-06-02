@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 64" fill="none" role="img" aria-label="RADAR logo lockup (light variant for dark backgrounds)">
+  <title>RADAR (for dark backgrounds)</title>
+  <!-- Mark : royal blue stays the same on dark backgrounds -->
+  <g>
+    <circle cx="14" cy="50" r="3" fill="#2251FF"/>
+    <path d="M 14 38 A 12 12 0 0 1 26 50" stroke="#2251FF" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 14 26 A 24 24 0 0 1 38 50" stroke="#2251FF" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 14 14 A 36 36 0 0 1 50 50" stroke="#2251FF" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+    <circle cx="45" cy="22" r="2.5" fill="#4F73FF"/>
+  </g>
+  <!-- Wordmark : light text -->
+  <text x="80" y="50" font-family="Inter, -apple-system, system-ui, sans-serif" font-size="56" font-weight="700" fill="#F5F1EB" letter-spacing="3">RADAR</text>
+</svg>

@@ -116,3 +116,14 @@ apps/agent/workspace/rapports/
 *.fdb_latexmk
 *.bbl
 *.blg
+
+# Karamo : fichiers perso + artefacts dev
+KARAMO.md
+BACHIROU.md
+.claude/
+NUL
+.tmp-design/
+.playwright-mcp/
+radar-login.png
+radar-register.png
+packages/database/tmp-*.mjs

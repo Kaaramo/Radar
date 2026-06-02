@@ -1,0 +1,72 @@
+# ─────────────────────────────────────────────────────────────────────────
+# .dockerignore — fichiers exclus du build context Docker
+#
+# Sans ce fichier, `COPY . .` envoie ~1 GB de node_modules + .next + .git
+# au daemon Docker, ce qui fait crasher le build (timeout ou disk full).
+# ─────────────────────────────────────────────────────────────────────────
+
+# Node deps (réinstallées dans le Dockerfile via pnpm)
+**/node_modules
+**/.pnpm-store
+
+# Next.js build artifacts (re-buildés dans le stage builder)
+**/.next
+**/.turbo
+**/out
+**/dist
+
+# Git history (pas besoin dans une image runtime)
+.git
+.gitignore
+.gitattributes
+
+# Environment local (les secrets sont passés via docker compose env)
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+
+# Logs et caches
+**/*.log
+**/.cache
+**/.eslintcache
+**/.tsbuildinfo
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.swp
+
+# Docs et meta (pas besoin runtime)
+docs
+README.md
+KARAMO.md
+BACHIROU.md
+*.md
+!apps/web/src/**/*.md
+!apps/agent/workspace/**/*.md
+
+# Tests + scripts dev
+**/tests
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/coverage
+apps/web/scripts
+
+# Branding sources (svg/png lourds — copiés via public/ si besoin)
+Branding/assets/fonts
+Branding/logo/*.png
+Branding/favicons
+
+# Tmp + scratch
+.tmp-design
+NUL
+"M244 Consignes Techniques de veille.pdf"
+
+# Docker artifacts
+infra/docker/**/Dockerfile
+docker-compose*.yml
+.dockerignore

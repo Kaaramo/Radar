@@ -1,0 +1,134 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://radar.ma/schemas/deep-research-output-v1.json",
+  "title": "Deep Research Output (RADAR profil utilisateur)",
+  "description": "Sortie attendue du sous-agent deep-research au terme de l'enrichissement du profil business d'un utilisateur RADAR. Schéma versionné — incrémenter `version` à chaque évolution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "secteur",
+    "description",
+    "produits",
+    "marches",
+    "positionnement",
+    "icp",
+    "motsClesMetier",
+    "taille",
+    "concurrentsSuggeres",
+    "presenceDigitale",
+    "sourcesUtilisees"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Version du schéma, sert au cron de re-roulage si on change le prompt."
+    },
+    "secteur": {
+      "type": ["string", "null"],
+      "maxLength": 280,
+      "description": "Secteur d'activité principal en français (ex : 'Logistique B2B', 'Conseil en stratégie', 'Fintech B2C')."
+    },
+    "description": {
+      "type": ["string", "null"],
+      "maxLength": 280,
+      "description": "Description courte (1-2 phrases) de l'activité de l'entreprise."
+    },
+    "produits": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 100 },
+      "maxItems": 6,
+      "description": "Principaux produits ou services proposés."
+    },
+    "marches": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 100 },
+      "maxItems": 6,
+      "description": "Marchés cibles ou zones géographiques desservies (ex : 'Maroc', 'PME industrielles', 'grandes entreprises')."
+    },
+    "positionnement": {
+      "type": ["string", "null"],
+      "maxLength": 280,
+      "description": "Positionnement stratégique — angle compétitif, vulnérabilités. Pas de prose marketing."
+    },
+    "icp": {
+      "type": ["string", "null"],
+      "maxLength": 280,
+      "description": "Ideal Customer Profile : qui paie cette entreprise (taille + secteur + pays + situation)."
+    },
+    "motsClesMetier": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 60 },
+      "maxItems": 8,
+      "description": "Vocabulaire métier que le Collecteur utilisera pour filtrer les sources web."
+    },
+    "taille": {
+      "type": ["string", "null"],
+      "enum": ["1-10", "11-50", "51-200", "201-500", "500+", null],
+      "description": "Fourchette d'effectif estimée."
+    },
+    "concurrentsSuggeres": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["nom", "siteWeb", "raison"],
+        "properties": {
+          "nom": { "type": "string", "maxLength": 120 },
+          "siteWeb": {
+            "type": ["string", "null"],
+            "format": "uri",
+            "description": "URL absolue (https://...) ou null si inconnue."
+          },
+          "raison": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Pourquoi ce concurrent est pertinent pour CE user (pas une description générique)."
+          }
+        }
+      },
+      "description": "Concurrents implicites identifiés via web search. Affichés DIRECTEMENT à l'utilisateur en chips étape 2."
+    },
+    "presenceDigitale": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["linkedinActif", "blogActif", "noteVisibilite"],
+      "properties": {
+        "linkedinActif": {
+          "type": ["boolean", "null"],
+          "description": "Page LinkedIn avec posts < 30 jours."
+        },
+        "blogActif": {
+          "type": ["boolean", "null"],
+          "description": "Blog d'entreprise actualisé < 90 jours."
+        },
+        "noteVisibilite": {
+          "type": ["string", "null"],
+          "enum": ["fort", "moyen", "faible", null],
+          "description": "Note synthétique de la présence digitale."
+        }
+      }
+    },
+    "sourcesUtilisees": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "titre"],
+        "properties": {
+          "url": {
+            "type": ["string", "null"],
+            "format": "uri",
+            "description": "URL absolue, ou null si la source est uniquement le nom de l'entreprise (recherche directe)."
+          },
+          "titre": { "type": "string", "maxLength": 200 }
+        }
+      },
+      "description": "Audit trail — exigence M244. Chaque URL doit être réelle et cliquable. Le `dateAcces` est ajouté côté serveur après réception (le LLM ne sait pas quand il a accédé à la source)."
+    }
+  }
+}

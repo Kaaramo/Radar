@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="RADAR logo mark monochrome">
+  <title>RADAR (monochrome)</title>
+  <!-- Uses currentColor : set color via CSS at parent level -->
+  <circle cx="14" cy="50" r="3" fill="currentColor"/>
+  <path d="M 14 38 A 12 12 0 0 1 26 50" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 14 26 A 24 24 0 0 1 38 50" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+  <path d="M 14 14 A 36 36 0 0 1 50 50" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+  <circle cx="45" cy="22" r="2.5" fill="currentColor"/>
+</svg>
