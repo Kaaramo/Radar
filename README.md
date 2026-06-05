@@ -4,188 +4,204 @@
 
 ### Vos concurrents bougent. Radar vous le dit avant tout le monde.
 
-**Plateforme de veille concurrentielle propulsée par un agent IA autonome. Chaque semaine, Radar parcourt le web, applique la méthodologie de veille stratégique du module M244 (CRAAP, SWOT, PESTEL, signaux faibles) et livre un rapport actionnable, sans intervention humaine.**
-
-![Stack](https://img.shields.io/badge/monorepo-pnpm%20%2B%20Turborepo-2251FF?style=flat-square)
+![Monorepo](https://img.shields.io/badge/monorepo-pnpm%20%2B%20Turborepo-2251FF?style=flat-square)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000?style=flat-square&logo=next.js)
-![Node](https://img.shields.io/badge/Node-24%20LTS-339933?style=flat-square&logo=node.js)
+![Node](https://img.shields.io/badge/Node-24-339933?style=flat-square&logo=node.js)
 ![Prisma](https://img.shields.io/badge/Prisma-6%20%2B%20PostgreSQL%2017-2D3748?style=flat-square&logo=prisma)
 ![LLM](https://img.shields.io/badge/LLM-DeepSeek%20V4%20Pro-2251FF?style=flat-square)
-![M244](https://img.shields.io/badge/M244-Veille%20Technologique-051C2C?style=flat-square)
-![ENSA](https://img.shields.io/badge/ENSA-Tétouan-051C2C?style=flat-square)
+![M244](https://img.shields.io/badge/M244-ENSA%20T%C3%A9touan-051C2C?style=flat-square)
 
 </div>
 
 ---
 
-## Le problème
+## Ce que fait RADAR
 
-Dans une PME, personne n'a le temps de surveiller les concurrents chaque semaine, de recouper les informations, de les évaluer puis de les mettre en forme. La veille se résume souvent au bouche-à-oreille sectoriel et à ce qui remonte sur LinkedIn. Les mêmes faiblesses reviennent :
+RADAR est une plateforme de **veille concurrentielle automatique**.
 
-| Faiblesse                                     | Conséquence                                 |
-| --------------------------------------------- | ------------------------------------------- |
-| Découverte tardive des mouvements concurrents | Avantage temporel perdu                     |
-| Sources non évaluées                          | Rumeurs et faits confirmés sur le même plan |
-| Aucune synthèse SWOT ni PESTEL                | Décisions prises à l'intuition              |
-| Signaux faibles ignorés                       | Tendances de fond manquées                  |
-| Pas de mémoire centralisée                    | Chaque revue repart de zéro                 |
+Vous entrez le nom de votre entreprise. Un agent IA autonome parcourt le web, identifie vos concurrents, analyse leurs mouvements, et vous livre chaque semaine un rapport clair : forces et faiblesses (SWOT), tendances du secteur (PESTEL), signaux faibles à surveiller, et une synthèse actionnable. Le tout sans aucune intervention humaine.
 
-> Le problème n'est pas un manque d'information. C'est un manque de **méthode** et d'**automatisation**.
+Vous consultez les rapports dans un dashboard et vous les exportez en PDF.
 
 ---
 
-## La solution
+## Le problème, et notre solution
 
-Radar confie le cycle de veille M244 à un agent IA autonome (OpenClaw) qui le déroule de bout en bout.
+**Le problème.** Dans une PME, personne n'a le temps de surveiller les concurrents chaque semaine, de vérifier les informations, puis de les mettre en forme. Résultat : on découvre les mouvements trop tard, les rumeurs se mélangent aux faits, et aucune synthèse n'est produite.
 
-```
-                       CYCLE HEBDOMADAIRE · LUNDI 06:00
-                                    │
-       ┌────────────────────────────┼────────────────────────────┐
-       ▼                            ▼                            ▼
-  Identification              Collecte                    Analyse & traitement
-  des besoins            (Tavily + web_fetch,           (CRAAP + SWOT + PESTEL
-   (onboarding +          7 derniers jours)              + détection signaux faibles
-   Deep Research)                                        + recoupement multi-sources)
-       │                                                          │
-       └──────────────────────────────────────────────────────────┤
-                                                                  ▼
-                                                     Diffusion & exploitation
-                                                     (dashboard + export PDF)
-                                                                  │
-                                                                  ▼
-                                                         Mise à jour continue
-                                                      (cycle hebdomadaire, signaux
-                                                        faibles sur 30 jours glissants)
-```
-
-### Le moteur : un agent OpenClaw, huit compétences
-
-Plutôt que huit agents distincts, Radar utilise **un seul agent qui charge huit compétences** au format `SKILL.md`. L'orchestrateur les enchaîne via des sous-sessions isolées (`sessions_spawn`).
-
-| Compétence                    | Mission                                                                                   |
-| ----------------------------- | ----------------------------------------------------------------------------------------- |
-| **Orchestrateur**             | Coordonne le pipeline et propage les résultats d'une étape à l'autre                      |
-| **Deep Research**             | Enrichit le profil de l'entreprise utilisatrice (une fois, à l'inscription)               |
-| **Collecteur**                | Recherche web des concurrents via Tavily (DuckDuckGo en fallback)                         |
-| **Évaluateur CRAAP**          | Note chaque source (Currency, Relevance, Authority, Accuracy, Purpose) sur 20             |
-| **Analyste PESTEL**           | Six dimensions sectorielles (politique, économique, social, techno, environnement, légal) |
-| **Analyste SWOT**             | Matrice forces / faiblesses / opportunités / menaces de l'entreprise utilisatrice         |
-| **Détecteur signaux faibles** | Croise les sources sur une fenêtre glissante de 30 jours                                  |
-| **Rédacteur**                 | Produit la synthèse narrative finale du cycle                                             |
+**La solution.** RADAR confie tout ce travail à un agent IA qui applique la méthodologie de veille du module M244 (CRAAP pour évaluer les sources, SWOT, PESTEL, détection de signaux faibles) et produit un rapport fiable, automatiquement.
 
 ---
 
-## Pour qui
+## Schéma global du système
 
-- **Dirigeant de PME.** Veut savoir chaque semaine ce que font ses concurrents, sans y passer deux heures par jour. Consulte son rapport dans le dashboard et l'exporte en PDF pour le comité de direction.
-- **Consultant indépendant.** Plusieurs missions en parallèle ; veut accélérer la recherche concurrentielle et garder une veille continue.
-- **Étudiant stratégiste.** Cherche à démontrer la maîtrise des concepts M244 sur un cas concret et livrable.
+![Schéma global du système RADAR](docs/schema_global_radar.png)
+
+Trois services communiquent sur un réseau Docker privé : l'**application web** (interface + base de données), le **moteur OpenClaw** (l'agent et ses 8 compétences), et **PostgreSQL**. Le moteur n'est jamais exposé sur Internet : il dialogue avec le web uniquement via les routes `/api/internal/*`.
 
 ---
 
-## Architecture
+## Architecture des fichiers
 
 ```
 radar/
 ├── apps/
-│   ├── web/                  [Karamo] Next.js 16 : dashboard, auth, onboarding,
-│   │                                  routes internes /api/internal/*
-│   └── agent/                [Bachirou] Service OpenClaw
-│       └── workspace/skills/ 8 compétences SKILL.md (orchestrateur, collecteur, ...)
+│   ├── web/                          Application Next.js (interface + persistance)
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   │   ├── (app)/             Pages protégées : dashboard, competitors, cycles,
+│   │   │   │   │                      reports, swot, pestel, weak-signals, settings
+│   │   │   │   ├── (auth)/            Connexion / inscription
+│   │   │   │   ├── onboarding/        Saisie du profil entreprise
+│   │   │   │   └── api/
+│   │   │   │       ├── auth/[...all]/ Authentification Better Auth (email + Google)
+│   │   │   │       └── internal/      Routes écrites par l'agent :
+│   │   │   │                          profil, sources, swot, pestel, signaux, rapport
+│   │   │   ├── components/            Composants UI
+│   │   │   └── lib/                   actions, agents (client OpenClaw), auth,
+│   │   │                              dashboard, onboarding, validators
+│   │   └── public/                   Assets statiques
+│   │
+│   └── agent/                        Moteur de veille (OpenClaw)
+│       ├── workspace/skills/         Les 8 compétences de l'agent (1 fichier SKILL.md chacune)
+│       │   ├── orchestrateur/        Coordonne tout le cycle de veille
+│       │   ├── deep-research/        Construit le profil entreprise (à l'inscription)
+│       │   ├── collecteur/           Recherche web des concurrents (Tavily)
+│       │   ├── evaluateur/           Note chaque source avec la méthode CRAAP
+│       │   ├── analyste-swot/        Produit la matrice SWOT
+│       │   ├── analyste-pestel/      Produit l'analyse PESTEL du secteur
+│       │   ├── detecteur-signaux-faibles/  Détecte les signaux faibles
+│       │   └── redacteur/            Rédige la synthèse finale
+│       ├── openclaw-data/            Config et état OpenClaw (modèle, auth, plugins)
+│       └── openclaw.json             Configuration du moteur
 │
 ├── packages/
-│   ├── database/             schema Prisma 6 + client (@radar/database)
-│   ├── contracts/            schemas Zod inter-services (@radar/contracts)
-│   └── ui/                   composants partagés (charte Radar Editorial)
+│   ├── database/                     Schéma Prisma + client partagé (@radar/database)
+│   │   └── prisma/schema.prisma      17 modèles (User, Rapport, Swot, Pestel, Source...)
+│   └── contracts/                    Schémas Zod partagés web <-> agent (@radar/contracts)
 │
-├── infra/
-│   └── docker/stack-complet/ docker-compose : postgres + openclaw + web
+├── infra/docker/
+│   ├── stack-complet/
+│   │   ├── docker-compose.yml        Stack principale : postgres + openclaw + web
+│   │   ├── docker-compose.mock.yml   Surcouche OPTIONNELLE : remplace le web par un mock
+│   │   │                             pour tester l'agent sans build Next.js
+│   │   ├── docker-compose.openclaw-only.yml  Mode dev hybride (Next.js lancé sur l'hôte)
+│   │   └── initdb/01-init.sql        Schéma appliqué AUTOMATIQUEMENT au 1er démarrage de Postgres
+│   ├── web/Dockerfile                Image de l'application Next.js (build standalone)
+│   └── mock-api/                     Faux service web pour les tests de l'agent
 │
-├── docs/
-│   ├── PRD-RADAR.md          Product Requirements Document
-│   └── Rapport/              rapport final M244 (LaTeX)
-│
-└── Branding/                 charte Radar Editorial, tokens, logo
+├── docs/                             PRD, rapport M244, charte graphique, schéma global (PNG)
+├── Branding/                         Charte Radar Editorial (logo, couleurs, tokens)
+├── .env.example                      Modèle de configuration à copier en .env
+├── pnpm-workspace.yaml / turbo.json  Monorepo pnpm + Turborepo
+└── README.md
 ```
 
-Trois services Docker communiquent sur un réseau interne privé : l'application web (interface et persistance), le moteur OpenClaw (les huit compétences) et PostgreSQL. Le moteur n'est jamais exposé sur Internet ; il dialogue avec le web par les routes `/api/internal/*`.
-
 ---
 
-## État du projet
+## Stack technique
 
-Le pipeline agent et l'application web sont fonctionnels et connectés. Un premier test d'intégration de bout en bout a été mené le 30 mai 2026 sur un compte réel (entreprise **inwi**, concurrents Orange Maroc et Maroc Telecom) : deux rapports produits, persistés et affichés dans le dashboard, avec un score CRAAP moyen de 16,4 / 20. Les détails figurent dans le [rapport M244](./docs/Rapport/).
-
----
-
-## Stack
-
-| Couche        | Choix                                                                |
-| ------------- | -------------------------------------------------------------------- |
-| Monorepo      | pnpm 10 workspaces + Turborepo                                       |
-| Web           | Next.js 16 (App Router) + React 19 + Tailwind CSS 4                  |
-| Auth          | Better Auth (email/mot de passe Argon2id + Google OAuth)             |
-| Agent         | OpenClaw (`ghcr.io/openclaw/openclaw:latest`, port interne 18789)    |
-| LLM           | DeepSeek V4 Pro (compatible API OpenAI ; Claude Opus 4.7 visé en V2) |
-| Recherche web | Tavily (primaire) + DuckDuckGo (fallback)                            |
-| Base          | PostgreSQL 17 + Prisma 6                                             |
-| Contrats      | Zod (`@radar/contracts`)                                             |
-| Design        | Radar Editorial : Navy `#051C2C`, Royal Blue `#2251FF`, Bone         |
-| Infra V1      | Docker Compose en local (postgres + openclaw + web)                  |
+| Couche          | Choix                                                                 |
+| --------------- | --------------------------------------------------------------------- |
+| Monorepo        | pnpm 10 (workspaces) + Turborepo                                      |
+| Application web | Next.js 16 (App Router) + React 19 + TypeScript 5 + Tailwind CSS 4    |
+| Authentification| Better Auth (email / mot de passe + Google OAuth)                    |
+| Moteur agent    | OpenClaw (`ghcr.io/openclaw/openclaw:latest`, port interne 18789)     |
+| Modèle LLM      | DeepSeek V4 Pro (`deepseek/deepseek-v4-pro`, thinking medium)         |
+| Recherche web   | Tavily (primaire) + DuckDuckGo (fallback)                            |
+| Base de données | PostgreSQL 17 + Prisma 6                                             |
+| Contrats        | Zod (`@radar/contracts`)                                            |
+| Infrastructure  | Docker Compose (postgres + openclaw + web)                          |
 
 ---
 
 ## Démarrage local
 
-**Prérequis :** Docker Desktop, pnpm 10+, Node 24+.
+**Prérequis :** uniquement **Docker Desktop** (lancé). Pas besoin d'installer Node ni pnpm : tout tourne dans des conteneurs.
 
 ```bash
-# 1. Variables d'environnement (racine du projet)
+# 1. Cloner le projet
+git clone <url-du-repo> radar
+cd radar
+
+# 2. Créer le fichier de configuration
 cp .env.example .env
-# Renseigner : DATABASE_URL, DEEPSEEK_API_KEY, TAVILY_API_KEY, OPENCLAW_INTERNAL_SECRET
-
-# 2. Installer les dépendances
-pnpm install
-
-# 3. Lancer la stack Docker complète (postgres + openclaw + web)
-cd infra/docker/stack-complet
-docker compose --env-file "../../../.env" up -d
 ```
 
-Pour développer l'application web seule (hors Docker) : `pnpm dev` puis http://localhost:3000.
+Ouvrez `.env` et renseignez au minimum :
 
-### Scripts (racine, via Turborepo)
+| Variable                  | Comment l'obtenir                                            |
+| ------------------------- | ----------------------------------------------------------- |
+| `DEEPSEEK_API_KEY`        | Clé API DeepSeek (https://platform.deepseek.com)            |
+| `TAVILY_API_KEY`          | Clé API Tavily (https://tavily.com)                         |
+| `BETTER_AUTH_SECRET`      | Générer un secret : `openssl rand -hex 32`                  |
+| `OPENCLAW_INTERNAL_SECRET`| N'importe quelle valeur secrète (partagée web <-> agent)    |
 
-| Commande                                                | Description                  |
-| ------------------------------------------------------- | ---------------------------- |
-| `pnpm dev`                                              | Lance les apps en watch mode |
-| `pnpm build`                                            | Build de production          |
-| `pnpm lint`                                             | Lint de tous les packages    |
-| `pnpm exec turbo run type-check`                        | Typecheck TypeScript         |
-| `pnpm --filter @radar/database exec prisma migrate dev` | Migrations Prisma            |
+Les identifiants Google sont optionnels : la connexion par email / mot de passe fonctionne sans eux.
+
+```bash
+# 3. Lancer toute la stack (postgres + openclaw + web)
+cd infra/docker/stack-complet
+docker compose --env-file "../../../.env" up -d --build
+```
+
+Au premier démarrage, Postgres crée automatiquement le schéma (via `initdb/01-init.sql`), l'image web se construit, puis les 3 services démarrent. Ouvrez ensuite :
+
+**http://localhost:3000**
+
+Créez un compte, faites l'onboarding (nom de votre entreprise), puis lancez un cycle de veille depuis le dashboard. Suivez l'agent en direct avec `docker logs -f radar-openclaw`.
+
+### Commandes utiles
+
+```bash
+# Depuis infra/docker/stack-complet/
+docker compose ps                       # état des 3 services
+docker compose logs -f web              # logs du site
+docker compose logs -f openclaw         # logs de l'agent
+docker compose down                     # tout arrêter (garde la base)
+docker compose down -v                  # tout arrêter et effacer la base
+
+# Tester le pipeline agent sans build Next.js (mode mock) :
+docker compose -f docker-compose.yml -f docker-compose.mock.yml --env-file "../../../.env" up -d
+```
 
 ---
 
-## Documentation
+## État d'avancement
 
-- **[PRD complet](./docs/PRD-RADAR.md)** : vision, ancrage M244, personas, parcours, architecture, données, API.
-- **[Rapport final M244](./docs/Rapport/)** : conception, architecture, implémentation, tests d'intégration, bilan.
+**Version 1 fonctionnelle.** Le pipeline agent et l'application web sont opérationnels et connectés. Un test d'intégration de bout en bout a été mené sur un compte réel (entreprise **inwi**, concurrents Orange Maroc et Maroc Telecom) : rapports produits, persistés et affichés dans le dashboard, avec un score CRAAP moyen de 16/20.
+
+- [x] Moteur agent : 8 compétences, pipeline séquentiel complet
+- [x] Application web : authentification, onboarding, dashboard, SWOT / PESTEL, export PDF
+- [x] Communication agent <-> web via routes internes
+- [x] Infrastructure Docker auto-suffisante (base locale + schéma automatiques)
+- [ ] Déclenchement automatique programmé (aujourd'hui : bouton manuel)
+- [ ] Déploiement en production (VPS)
 
 ---
 
-## Équipe
+## Améliorations futures
+
+- **Déclencheur automatique** : aujourd'hui, le cycle de veille se lance manuellement (un bouton dans le dashboard). Automatiser le déclenchement programmé (cron hebdomadaire, le lundi à 6h00) pour une veille réellement autonome, sans aucun clic.
+- **Déploiement VPS** : mise en ligne pour un accès permanent et l'exécution du cron côté serveur.
+- **Notifications automatiques** : envoi du rapport par email à heure fixe après chaque cycle.
+- **Google OAuth en production** : remplacer les identifiants placeholder par de vrais identifiants.
+- **Migrations versionnées** : passer de `initdb/01-init.sql` à des migrations Prisma suivies, pour faire évoluer le schéma proprement.
+- **Tests automatisés** : couverture des routes internes et du pipeline agent.
+- **Passage à l'échelle** : gestion de nombreux utilisateurs simultanés et historique de veille enrichi.
+
+---
 
 <div align="center">
 
-### Karamo Sylla &nbsp;&nbsp;·&nbsp;&nbsp; Bachirou Konaté
+### Karamo Sylla &nbsp;&nbsp;&middot;&nbsp;&nbsp; Bachirou Konaté
 
-_Binôme — Cycle Ingénieur Big Data & Intelligence Artificielle_
+_Binôme - Cycle Ingénieur Big Data & Intelligence Artificielle_
 
 </div>
 
 <br>
 
 > **Encadrant** &nbsp; Pr. Younes Wadiai
-> **Module** &nbsp; M244 · Veille Technologique — ENSA Tétouan
+> **Module** &nbsp; M244 - Veille Technologique, ENSA Tétouan
 > **Session** &nbsp; Printemps 2026

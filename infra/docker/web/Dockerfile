@@ -47,6 +47,17 @@ COPY . .
 # Note : ne pas faire de migration ici, juste générer le client TS.
 RUN pnpm --filter @radar/database exec prisma generate
 
+# Variables requises par Better Auth AU MOMENT DU BUILD (la route /api/auth/[...all]
+# est evaluee par `next build`). Placeholders : aucune validation au build, les
+# VRAIES valeurs sont injectees au runtime via docker compose (environment:).
+# Ces ENV restent dans le stage builder uniquement, ne fuient pas vers le runner.
+ARG BETTER_AUTH_SECRET=build-placeholder-secret
+ARG GOOGLE_CLIENT_ID=build-placeholder
+ARG GOOGLE_CLIENT_SECRET=build-placeholder
+ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+ENV GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+ENV GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
+
 # Build Next.js (Turbopack, output standalone pour image légère)
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @radar/web build
@@ -70,9 +81,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 
-# Copy Prisma engines (requis au runtime pour les queries)
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.pnpm/@prisma+client* ./node_modules/.pnpm/
-COPY --from=builder --chown=nextjs:nodejs /app/packages/database/generated ./packages/database/generated
+# Note Prisma : le client genere + son moteur de requete sont deja inclus dans
+# le bundle standalone de Next.js (.next/standalone/node_modules, copie ci-dessus).
+# Aucune copie manuelle necessaire (elle entrerait en conflit avec le standalone).
 
 USER nextjs
 EXPOSE 3000

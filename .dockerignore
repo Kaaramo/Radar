@@ -66,6 +66,10 @@ Branding/favicons
 NUL
 "M244 Consignes Techniques de veille.pdf"
 
+# Runtime OpenClaw (volumes montes : etat, tests, et symlinks dangling
+# plugin-skills/* qui pointent vers /app/dist/* du conteneur openclaw)
+apps/agent/openclaw-data
+
 # Docker artifacts
 infra/docker/**/Dockerfile
 docker-compose*.yml

@@ -7,7 +7,7 @@ const requireEnv = (name: string): string => {
   const value = process.env[name];
   if (!value) {
     throw new Error(
-      `Variable d'environnement ${name} manquante. Voir apps/web/.env.example`,
+      `Variable d'environnement ${name} manquante. Voir le fichier .env.example a la racine du projet`,
     );
   }
   return value;
