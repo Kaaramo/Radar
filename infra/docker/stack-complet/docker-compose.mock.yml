@@ -1,0 +1,20 @@
+# ─────────────────────────────────────────────────────────────────────────
+# RADAR — surcouche MOCK (optionnelle)
+#
+# Par defaut, `docker compose up` lance la VRAIE application web (apps/web).
+# Ce fichier remplace le service `web` par le mock-api (infra/docker/mock-api),
+# utile pour tester le pipeline agent sans build Next.js : chaque POST des
+# skills est sauvegarde en JSON dans apps/agent/openclaw-data/tests/.
+#
+# Activer le mock (le preciser explicitement) :
+#   docker compose -f docker-compose.yml -f docker-compose.mock.yml \
+#     --env-file ../../../.env up -d
+# ─────────────────────────────────────────────────────────────────────────
+
+services:
+  web:
+    build:
+      context: ../mock-api
+      dockerfile: Dockerfile
+    volumes:
+      - ../../../apps/agent/openclaw-data/tests:/app/tests
